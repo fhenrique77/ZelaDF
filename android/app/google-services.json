@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "657171817642",
+    "project_id": "zeladf",
+    "storage_bucket": "zeladf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:657171817642:android:cb37e01df2b24a18f41cd3",
+        "android_client_info": {
+          "package_name": "com.zeladf.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCO_MxJqdYv-Nkzt2VZ18jZjWHSz4FKEdo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

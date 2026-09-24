@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500" role="img" aria-label="ZelaDF: seu bairro no mapa, avisos comunitários no Distrito Federal">
+ <defs><clipPath id="map"><rect x="590" y="0" width="434" height="500"/></clipPath></defs>
+ <rect width="1024" height="500" fill="#163d67"/>
+ <g clip-path="url(#map)">
+  <path d="M610 0H1024V500H760L645 385 702 270 616 161Z" fill="#224e79"/>
+  <g fill="none" stroke="#477091" stroke-width="22"><path d="M530 100L1090 386M659 -50L776 500M1030 15L597 505M560 270L1050 118"/></g>
+  <g fill="none" stroke="#8da5af" stroke-width="3"><path d="M530 100L1090 386M659 -50L776 500M1030 15L597 505M560 270L1050 118"/></g>
+  <path d="M830 100L927 149 885 222 795 169Z" fill="#628779"/>
+  <path d="M852 343L978 285 1032 357 923 447Z" fill="#628779"/>
+  <g transform="translate(768 234)"><path d="M0 54C-18 31-38 12-38-10a38 38 0 0176 0C38 12 18 31 0 54Z" fill="#c55638" stroke="#f5efe2" stroke-width="5"/><circle cy="-10" r="12" fill="#f5efe2"/></g>
+  <g transform="translate(927 98)"><path d="M0 35C-13 19-25 7-25-8a25 25 0 0150 0C25 7 13 19 0 35Z" fill="#d7a734" stroke="#f5efe2" stroke-width="4"/><circle cy="-8" r="8" fill="#f5efe2"/></g>
+ </g>
+ <text x="88" y="88" fill="#f5efe2" font-family="Arial,sans-serif" font-size="30" font-weight="700">ZelaDF</text>
+ <rect x="88" y="124" width="60" height="5" fill="#cf6a45"/>
+ <text x="88" y="220" fill="#f5efe2" font-family="Arial,sans-serif" font-size="58" font-weight="700">O seu bairro,</text>
+ <text x="88" y="287" fill="#f5efe2" font-family="Arial,sans-serif" font-size="58" font-weight="700">no mapa.</text>
+ <text x="90" y="353" fill="#d8e0df" font-family="Arial,sans-serif" font-size="22">Avisos comunitários</text>
+ <text x="90" y="383" fill="#d8e0df" font-family="Arial,sans-serif" font-size="22">no Distrito Federal.</text>
+</svg>

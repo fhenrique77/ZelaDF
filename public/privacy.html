@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>ZelaDF - Política de Privacidade</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 780px; margin: 2rem auto; padding: 0 1rem 3rem; line-height: 1.65; color: #1e1e1c; background: #f6f3ec; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #1f4b8f; padding-bottom: 0.6rem; }
+    h2 { font-size: 1.15rem; margin-top: 2rem; color: #16376a; }
+    p, li, td, th { font-size: 0.95rem; }
+    a { color: #1f4b8f; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    th, td { border: 1px solid #d6cfc2; padding: 0.65rem; text-align: left; vertical-align: top; }
+    td { overflow-wrap: anywhere; }
+    th { background: #ece7de; }
+    .notice { border-left: 3px solid #c0533a; background: #ece7de; padding: 0.8rem 1rem; }
+  </style>
+</head>
+<body>
+  <p><a href="./">Voltar ao mapa</a></p>
+  <h1>Política de Privacidade - ZelaDF</h1>
+  <p><strong>Última atualização:</strong> 13 de setembro de 2026</p>
+
+  <p class="notice"><strong>Escopo:</strong> esta política descreve o código atual. A identidade jurídica do controlador, as bases legais, os prazos formais e o canal operacional ainda precisam de validação jurídica e administrativa antes de o produto ser considerado pronto para produção.</p>
+
+  <h2>1. Sobre o ZelaDF</h2>
+  <p>O ZelaDF permite registrar e consultar problemas urbanos em um mapa colaborativo. Ele sugere um órgão para contato, mas não encaminha avisos, não gera protocolo oficial e não confirma recebimento pelo poder público.</p>
+
+  <h2>2. Dados tratados</h2>
+  <ul>
+    <li><strong>Conta:</strong> e-mail, telefone ou dados básicos recebidos do Google, conforme o método de login escolhido, além de identificador interno e sessão.</li>
+    <li><strong>Aviso público:</strong> categoria, título, descrição, região, endereço, coordenadas exatas, foto, status e data.</li>
+    <li><strong>Autoria interna:</strong> identificador da conta usado para controlar edição e exclusão. A interface pública identifica contribuições somente como “Cidadão” e não exibe nome, e-mail ou telefone do autor.</li>
+    <li><strong>Confirmações:</strong> aviso confirmado, identificador interno da conta e identificador aleatório armazenado no dispositivo.</li>
+    <li><strong>GPS:</strong> posição atual somente após ação do usuário e permissão do navegador ou Android. Ela centraliza o mapa e não é salva como aviso até que o usuário publique uma ocorrência naquele local.</li>
+    <li><strong>Push, quando ativado:</strong> token do dispositivo associado ao identificador da conta.</li>
+    <li><strong>Operação interna:</strong> mudanças de status guardam o status anterior e novo, motivo, data e identificador interno do operador. O motivo não deve conter dados pessoais desnecessários.</li>
+    <li><strong>Pedido de exclusão:</strong> identificador interno da conta autenticada, protocolo, data e situação do atendimento. Não coletamos justificativa, documentos ou dados de contato adicionais nesse formulário.</li>
+    <li><strong>Regras da comunidade:</strong> versão e data de aceite vinculadas internamente à conta antes de publicar ou enviar fotos.</li>
+    <li><strong>Denúncias e bloqueios:</strong> aviso denunciado, alvo (conteúdo ou autor), motivo, detalhes opcionais, protocolo e decisão administrativa; pares de identificadores internos das contas bloqueadas. Esses dados são privados e não identificam o denunciante para o autor.</li>
+  </ul>
+
+  <h2>3. Visibilidade e cuidados ao publicar</h2>
+  <p>Localização exata, endereço, texto e foto de um aviso são públicos. Não publique rostos, placas de veículos, documentos, telefones, endereços residenciais de terceiros ou outras informações pessoais desnecessárias. Os dados da conta são usados para autenticação e autoria interna, não como assinatura pública.</p>
+
+  <h2>4. Serviços externos</h2>
+  <table>
+    <thead><tr><th>Serviço</th><th>Quando e quais dados recebe</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://supabase.com/privacy">Supabase</a></td><td>Autenticação, sessão, avisos, votos, identificadores internos e fotos armazenadas.</td></tr>
+      <tr><td><a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim</a></td><td>Coordenadas escolhidas somente quando o usuário solicita uma sugestão de endereço, além de metadados normais da requisição.</td></tr>
+      <tr><td><a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap</a></td><td>Área e nível de zoom necessários para entregar os blocos do mapa, além de IP, Referer/User-Agent e dados técnicos da requisição.</td></tr>
+      <tr><td><a href="https://policies.google.com/privacy?hl=pt-BR">Google</a></td><td>Dados necessários ao login Google quando esse método é escolhido. As fontes atuais também são carregadas dos servidores Google ao abrir a aplicação.</td></tr>
+      <tr><td><a href="https://firebase.google.com/support/privacy/">Firebase Cloud Messaging</a></td><td>Token do dispositivo e conteúdo operacional da notificação, somente se o push for ativado e autorizado.</td></tr>
+      <tr><td><a href="https://vercel.com/legal/privacy-notice">Vercel</a></td><td>Hospedagem web e função de push podem processar IP, User-Agent e outros metadados técnicos.</td></tr>
+      <tr><td><a href="https://unsplash.com/privacy">Unsplash</a></td><td>Imagens de demonstração podem gerar requisições com IP e metadados técnicos quando o modo demo é usado.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Localização e permissões</h2>
+  <ul>
+    <li>O botão de localização solicita a permissão do sistema; negar mantém o uso do mapa disponível.</li>
+    <li>A consulta ao Nominatim ocorre somente ao selecionar “Sugerir endereço”. O preenchimento manual continua disponível.</li>
+    <li>Navegar no mapa solicita tiles do OpenStreetMap referentes à área visualizada; isso não equivale a acessar o GPS.</li>
+    <li>Publicar exige confirmação de que coordenadas, endereço, texto e foto serão públicos.</li>
+  </ul>
+
+  <h2>6. Retenção e exclusão</h2>
+  <ul>
+    <li>A conta e suas identidades são mantidas enquanto ela estiver ativa.</li>
+    <li>Avisos e fotos permanecem até exclusão pelo autor ou atendimento de pedido de exclusão da conta; marcar um aviso como resolvido não o apaga.</li>
+    <li>Votos permanecem até sua remoção ou a exclusão do aviso/conta.</li>
+    <li>O aceite das regras permanece enquanto a conta existir. Bloqueios são removidos ao desbloquear ou excluir uma das contas envolvidas. Denúncias são removidas com o aviso ou a conta denunciante; decisões de ocultação permanecem enquanto o aviso existir.</li>
+    <li>O código local remove tokens no logout e quando o Firebase os invalida, além de impedir associação simultânea a contas diferentes. O push permanece desativado e esse ciclo ainda precisa ser validado nos serviços remotos e em aparelho.</li>
+    <li>O histórico de status permanece enquanto o aviso existir. A exclusão do aviso remove o histórico e a exclusão da conta do operador retira sua associação identificável.</li>
+    <li>Logs e backups seguem configurações dos provedores, que ainda precisam ser auditadas no ambiente de produção.</li>
+  </ul>
+  <p>A exclusão individual de aviso existe para o autor. A exclusão completa de conta ainda não é automática: o pedido precisa ser verificado e processado pelo responsável, incluindo fotos, votos, avisos, tokens e a identidade no Supabase Auth. Dados poderão ser preservados quando houver obrigação legal aplicável.</p>
+  <p><a href="./account-deletion.html">Solicitar exclusão da conta e dos dados</a>. O pedido pode ser iniciado na web ou pelo botão “Conta” no aplicativo. O protocolo comprova recebimento, não a conclusão da exclusão. O registro do pedido é removido junto com a identidade Auth; o canal e seu atendimento ainda dependem de ativação e validação operacional antes do lançamento.</p>
+
+  <h2>7. Direitos e contato</h2>
+  <p>O titular pode solicitar confirmação de tratamento, acesso, correção, informação sobre compartilhamento, anonimização, bloqueio ou exclusão quando aplicável. Consulte também as <a href="https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados-1/direito-dos-titulares">orientações da ANPD</a>.</p>
+  <p>O responsável e o canal de suporte e privacidade ainda estão em preparação. Não há e-mail operacional confirmado para atendimento. Esses dados serão publicados e o atendimento será validado antes do lançamento público.</p>
+
+  <h2>8. Sessão, logs e segurança</h2>
+  <p>Para evitar reenvio repetido de código de login, guardamos localmente apenas um prazo de espera de até 60 segundos, sem e-mail ou código. O valor vencido é removido na próxima consulta desse controle.</p>
+  <p>O cliente mantém dados técnicos de sessão no armazenamento local para conservar o login. O código não inclui ferramenta própria de publicidade ou analytics, mas provedores podem manter logs técnicos. A proteção efetiva depende das configurações de RLS, Storage, autenticação e infraestrutura aplicadas no ambiente.</p>
+  <p>A configuração Android exclui os dados locais do aplicativo de backup em nuvem e transferência entre aparelhos, incluindo a sessão. Em uma nova instalação, será necessário entrar novamente na conta. A validação em aparelho permanece pendente.</p>
+
+  <h2>9. Mudanças</h2>
+  <p>Esta política deve ser revista quando houver mudança de dados, finalidade, retenção, provedor, plataforma ou canal de atendimento. A data no topo identifica a versão apresentada.</p>
+</body>
+</html>

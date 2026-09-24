@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --font-display: 'Jost', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-concrete: #ece7de;
+  --color-paper: #f6f3ec;
+  --color-ink: #1a1b18;
+  --color-ash: #6b6a62;
+  --color-cerrado: #1f4b8f;
+  --color-cerrado-deep: #16376a;
+  --color-terracota: #c0533a;
+  --color-cerrado-sky: #7ea8dd;
+  --color-line: #d6cfc2;
+}
+
+:root {
+  --agua: #2c7fb8;
+  --buraco: #c0533a;
+  --poste: #d9a520;
+  --lixo: #4a7a3f;
+  --semaforo: #7d4bb3;
+  --outro: #6b6a62;
+}
+
+* {
+  border-color: var(--color-line);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-concrete);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Safe areas para celulares com notch/câmera/barra de navegação ── */
+
+/* Área atrás da status bar (cor do header) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+  background-color: var(--color-paper);
+}
+
+/* Padding inferior para botões flutuantes acima da barra de navegação */
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+/* Padding lateral para telas com bordas curvas (landscape) */
+.safe-sides {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+::selection {
+  background: var(--color-cerrado);
+  color: #fff;
+}
+
+/* Scrollbars hidden until scrolling */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-thin:hover {
+  scrollbar-color: var(--color-line) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.scroll-thin:hover::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+}
+
+/* Leaflet surface tuning to match the concrete ground */
+.leaflet-container {
+  background: #dfd9cd;
+  font-family: var(--font-body);
+}
+
+.leaflet-control-zoom a {
+  background: var(--color-paper) !important;
+  color: var(--color-ink) !important;
+  border-color: var(--color-line) !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 1px 0 rgba(26, 27, 24, 0.12) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 2px;
+  padding: 0;
+  box-shadow: 0 12px 40px -12px rgba(22, 55, 106, 0.45);
+  border: 1px solid var(--color-line);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  width: 260px !important;
+}
+
+.leaflet-popup-tip {
+  border: 1px solid var(--color-line);
+}
+
+.pin {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid var(--color-paper);
+  box-shadow: 0 6px 14px -4px rgba(22, 55, 106, 0.5);
+  transition: transform 0.15s ease;
+}
+
+.pin span {
+  transform: rotate(45deg);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pin-marker:hover .pin {
+  transform: rotate(-45deg) scale(1.12);
+}
+
+.pin-active .pin {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 1px;
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-drop {
+  animation: drop-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

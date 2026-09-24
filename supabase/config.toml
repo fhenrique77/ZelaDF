@@ -1,0 +1,43 @@
+# Local-only Supabase configuration. Remote project references and secrets do not belong here.
+project_id = "zeladf-local"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Confirm the remote major version before adopting this baseline remotely.
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:8443"
+additional_redirect_urls = [
+  "http://127.0.0.1:8443",
+  "http://localhost:8443",
+  "com.zeladf.app://auth-callback",
+]
+jwt_expiry = 3600
+enable_signup = true

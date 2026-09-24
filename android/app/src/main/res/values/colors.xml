@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ZelaDF brand colors -->
+    <color name="colorPrimary">#1f4b8f</color>      <!-- cerrado -->
+    <color name="colorPrimaryDark">#16376a</color>   <!-- cerrado-deep -->
+    <color name="colorAccent">#c0533a</color>         <!-- terracota -->
+</resources>

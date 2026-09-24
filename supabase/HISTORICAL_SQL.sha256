@@ -1,0 +1,3 @@
+# Historical root SQL files. Update only after an explicit, documented decision.
+0E3655E71D3258F1114113C3A3F8818D87098145D6B7B631F816B43961B4229E  supabase-schema.sql
+E5F05A22C83A54B2523A71CDA4D5DBBD2F8CEE207F8BEADADB84CD1308FD5CCA  supabase-auth-migration.sql
