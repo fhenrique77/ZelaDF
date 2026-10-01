@@ -17,6 +17,7 @@ const CATEGORY_LIST = Object.values(CATEGORIES)
 
 type SubmitData = Omit<Report, "id" | "createdAt" | "confirmations" | "status"> & {
   photoFile: File | null
+  idempotencyKey: string
 }
 
 export function NewReportForm({
@@ -45,6 +46,7 @@ export function NewReportForm({
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const previewUrlRef = useRef<string | null>(null)
+  const submissionRef = useRef<{ fingerprint: string; key: string } | null>(null)
 
   const c = CATEGORIES[category]
   const valid =
@@ -119,6 +121,14 @@ export function NewReportForm({
     setError(null)
     try {
       await acceptCommunityTerms()
+      const fingerprint = JSON.stringify([
+        category, title.trim(), description.trim(), ra.trim(), address.trim(),
+        coords.lat, coords.lng, photoFile?.name, photoFile?.size,
+        photoFile?.type, photoFile?.lastModified,
+      ])
+      if (submissionRef.current?.fingerprint !== fingerprint) {
+        submissionRef.current = { fingerprint, key: crypto.randomUUID() }
+      }
       await onSubmit({
         category,
         title: title.trim(),
@@ -129,6 +139,7 @@ export function NewReportForm({
         lng: coords.lng,
         photo: photo ?? "",
         photoFile,
+        idempotencyKey: submissionRef.current.key,
       })
     } catch (submitError) {
       setError(

@@ -1,4 +1,9 @@
 node_modules/
+backend/.venv/
+__pycache__/
+*.pyc
+backend/.pytest_cache/
+.pytest_cache/
 .idea/
 dist/
 build/

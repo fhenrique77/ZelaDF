@@ -12,7 +12,7 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 
 ## DEC-001 - Supabase como backend principal
 
-**Status:** Ativa.
+**Status:** Ativa como infraestrutura atual; migração gradual da camada de API planejada em DEC-022.
 
 **Contexto:** a aplicação precisa de autenticação, banco relacional e armazenamento de fotos.
 
@@ -26,7 +26,7 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 
 ## DEC-002 - CRUD principal direto do frontend para o Supabase
 
-**Status:** Ativa; autorização principal aplicada e ensaiada remotamente em 2026-09-13 por reparos pontuais. Comunidade implantada coordenadamente em 2026-09-13.
+**Status:** Ativa durante a transição; substituição gradual planejada em DEC-022. Autorização principal aplicada e ensaiada remotamente em 2026-09-13 por reparos pontuais. Comunidade implantada coordenadamente em 2026-09-13.
 
 **Contexto:** `src/lib/reportService.ts` executa queries e uploads usando o cliente público.
 
@@ -142,13 +142,13 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 
 **Contexto:** o autor deve ser avisado quando o status de seu aviso mudar.
 
-**Decisão:** manter o fluxo inativo até validação externa. Quando habilitado, uma ação explícita no Android registra o token em `push_tokens`; o logout o remove antes de encerrar a sessão. Um webhook autenticado chama `POST /api/send-push`, que busca tokens com `service_role`, envia via FCM e remove registros definitivamente inválidos. Cliente e servidor exigem flags independentes, desligadas por padrão.
+**Decisão:** manter o fluxo inativo até decisão do produto e validação externa. O módulo FastAPI 8 preserva a função Vercel como único consumidor, sem introduzir chave administrativa na API pública. Quando habilitado, uma ação explícita no Android registra o token em `push_tokens`; o logout o remove antes de encerrar a sessão. Um trigger do histórico grava somente o ID em `push_status_events`, e o webhook autenticado dessa tabela chama `POST /api/send-push` sem enviar motivo ou ID do operador. A função reivindica o evento por RPC exclusiva de `service_role`, busca tokens, envia via FCM e remove registros definitivamente inválidos. Cliente e servidor exigem flags independentes, desligadas por padrão.
 
 **Consequências positivas:** envio fica fora do frontend, tokens possuem RLS/ciclo de cleanup e uma configuração incompleta falha fechada sem solicitar permissão ao usuário.
 
 **Consequências negativas:** adiciona dependências de migration, trigger privado, RLS, webhook, Vercel, secrets, Firebase, opt-in de UI e permissões Android.
 
-**Observações:** `20260904000400_create_push_tokens.sql` existe apenas localmente. O arquivo local de service account encontrado na raiz foi removido em 2026-09-05 e não deve ser restaurado; a função aceita a credencial somente por `FIREBASE_SERVICE_ACCOUNT` no servidor. Uma consulta somente leitura confirmou esse nome e `PUSH_SECRET` como secrets ocultos na Vercel, mas não seus valores ou rotação. `VITE_PUSH_ENABLED` continua falsa e `PUSH_ENABLED` permanece ausente; não há ação de opt-in nem webhook versionado. A origem local de mudanças de status foi definida na DEC-018, mas não foi aplicada remotamente. Não tratar o fluxo como operacional.
+**Observações:** `20260904000400_create_push_tokens.sql` e `20260925000100_push_status_event_claim.sql` não foram aplicadas por esta tarefa. A reivindicação atômica impede reenvio do mesmo ID, mas uma falha após a reivindicação pode perder a entrega; o produto deve aceitar esse limite de melhor esforço. O arquivo local de service account encontrado na raiz foi removido em 2026-09-05 e não deve ser restaurado; a função aceita a credencial somente por `FIREBASE_SERVICE_ACCOUNT` no servidor. Uma consulta somente leitura confirmou esse nome e `PUSH_SECRET` como secrets ocultos na Vercel, mas não seus valores ou rotação. `VITE_PUSH_ENABLED` continua falsa e `PUSH_ENABLED` permanece ausente; não há ação de opt-in nem webhook ativo confirmado. Não tratar o fluxo como operacional.
 
 ## DEC-011 - Dados demonstrativos como fallback
 
@@ -291,3 +291,63 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 **Decisão:** excluir todos os domínios locais do app do backup e da transferência entre aparelhos. O manifesto desativa backup e referencia regras para Android antigo e Android 12+. A sessão persistida pela WebView não deve ser restaurada em outra instalação. O estado persistente do produto é recuperado dos serviços após autenticação; os backups remotos mantêm seu procedimento próprio.
 
 **Consequências:** reinstalação/troca de aparelho exige novo login e não restaura preferências ou arquivos locais. Testes estáticos conferem os domínios excluídos, mas não substituem restauração real nem comprovam o comportamento de todas as fabricantes.
+
+## DEC-022 - Migrar a camada de API gradualmente para FastAPI
+
+**Status:** decisão de direção tomada em 2026-09-23; inventário e contrato local do módulo 0 preparados em 2026-09-24. Fundação local e módulos 2 a 7 implementados em `backend/`; o módulo 7 é administrativo, e as flags do cliente seguem desligadas. Staging e ativação pendentes.
+
+**Contexto:** o proprietário decidiu substituir gradualmente o acesso direto do app aos dados por um backend próprio em Python/FastAPI. Auth, PostgreSQL, Storage, RLS e RPCs do Supabase já sustentam fluxos em produção; a migração precisa preservar web, Android e clientes antigos.
+
+**Decisão:** criar uma API FastAPI versionada e mover um fluxo por vez. Supabase permanece inicialmente como infraestrutura de Auth, banco e fotos. As regras de autoria, votos, status e acesso continuam protegidas no banco. Cada escrita terá uma única origem ativa; a retirada do acesso direto será decidida somente após migração e validação dos clientes suportados. Ordem, critérios e limites estão em `docs/BACKEND_PRODUCAO.md`.
+
+**Consequências:** a API permite concentrar integrações e operações administrativas, mas acrescenta hospedagem, monitoramento, contratos HTTP, validação de tokens e compatibilidade durante a transição. A escolha de provedor, configuração remota e alterações de grants dependem de etapas próprias; este plano não autoriza deploy ou migration.
+
+**Escolha inicial de hospedagem e mídia:** API HTTP FastAPI em projeto Vercel separado do frontend, ainda não criado; fotos de até 5 MiB continuam sendo transmitidas diretamente ao Supabase Storage com JWT do usuário, pois Vercel Functions limitam o corpo da requisição a 4,5 MB. A API verificará caminho e ownership antes de associar a foto. A execução durável da exclusão de conta foi separada da API pública na DEC-025. Ver `docs/BACKEND_PRODUCAO.md`.
+
+## DEC-023 - Criação de avisos idempotente na API FastAPI
+
+**Status:** implementada localmente em 2026-09-24; migration e fluxo real em staging pendentes.
+
+**Decisão:** o cliente do módulo 4 gera um UUID por conteúdo do formulário e o envia em `Idempotency-Key`. A RPC `create_report_idempotent` mantém chave, hash e aviso na mesma transação, sob trava por conta/chave. Repetição com o mesmo corpo retorna o aviso existente; corpo diferente ou aviso já excluído gera conflito. A função deriva autoria de `auth.uid()`, confere aceite de termos e foto pertencente à conta antes de inserir. A foto é enviada diretamente ao Storage com JWT da conta; a API recebe somente o caminho. Edição e exclusão continuam sujeitas à RLS e à confirmação da linha afetada.
+
+**Consequências:** resposta perdida após commit não duplica aviso; registros de chave são removidos por cascade quando a conta Auth for excluída. A criação passa a depender da nova migration local `20260924000100_fastapi_report_create_idempotency.sql`; não ligar a flag antes de comparar e testar o schema real. Banco e Storage não formam uma única transação: falhas conhecidas de remoção entram em fila privada, cujo executor ainda precisa ser implementado; uploads que não chegam à API exigem varredura própria. Clientes antigos permanecem no contrato direto atual até migração comprovada.
+
+## DEC-024 - Separar status operacional da revisão de denúncias na API
+
+**Status:** implementada localmente no módulo FastAPI 6; ensaio remoto pendente.
+
+**Decisão:** a API encaminha aceite, denúncias e bloqueios somente às RPCs públicas já protegidas por `auth.uid()`; devolve ao cliente apenas o protocolo da denúncia. O papel `operator_users` é usado para consultar o histórico operacional e alterar status por `change_report_status`, com motivo obrigatório e histórico transacional. A revisão de denúncias continua restrita ao canal administrativo privado existente, sem rota FastAPI nem concessão implícita ao operador de avisos. A flag `VITE_API_COMMUNITY_STATUS_ENABLED` inicia desligada.
+
+**Consequências:** o cliente não recebe identidade do denunciante, do autor bloqueado nem do ator de status. A API usa o JWT da conta, a checagem de papel e RLS/RPC do banco; uma resposta perdida de status é reconciliada pelo histórico privado. A operação contínua de moderação e a remoção de fotos ocultadas continuam tarefas humanas a definir antes da ativação pública. Nenhuma migration ou privilégio novo é introduzido neste módulo.
+
+## DEC-025 - Exclusão administrativa retomável fora da API pública
+
+**Status:** implementada localmente no módulo 7; migration, Auth e Storage reais ainda não validados em staging.
+
+**Decisão:** a execução da exclusão é uma ferramenta Python operada por responsável de privacidade, sem rota FastAPI nem chave administrativa no cliente ou na hospedagem web. Antes de começar, o responsável verifica identidade e intenção por canal autenticado e registra um UUID aleatório em controle restrito. A ferramenta exige protocolo e UUID Auth esperado; a RPC confere ambos com o pedido e armazena apenas o hash da referência. Um job privado e triggers bloqueiam novas mutações da conta; a mesma trava transacional coordena o início com escritas concorrentes. Fotos são removidas pela Storage API e ambiguidades de ownership param o fluxo. A purga de votos, avisos e tokens push é transacional. A conclusão só ocorre depois de conferir ausência em Auth, Storage, banco e fila, e apaga o UUID Auth do comprovante.
+
+**Consequências:** `service_role` fica restrita ao ambiente do operador e quatro RPCs administrativas recebem EXECUTE somente desse papel. Falhas deixam estágio persistente para retomada; uma segunda execução não repete a remoção confirmada. A exclusão Auth não revoga imediatamente JWTs já emitidos, por isso o bloqueio de escrita também rejeita identidade Auth inexistente. O job não pode ser descartado como rollback depois do início. A operação depende da migration local `20260924000200_account_deletion_execution.sql`, da reconciliação do schema e de ensaio com duas contas e fotos reais. Responsável, canal de recuperação de acesso, prazo e retenção do comprovante ainda exigem decisão humana antes de pedidos reais.
+
+## DEC-026 - Encerrar a transição somente por evidência de adoção
+
+**Status:** preparação local do módulo 9; nenhum corte aprovado ou implantado.
+
+**Decisão:** manter os caminhos diretos e as cinco flags desligadas até validar cada fluxo FastAPI em staging e observar versões web/Android suportadas. Pedidos à API incluem apenas plataforma e versão do build web; o servidor registra o rótulo somente se estiver em uma lista configurada, junto ao template da rota, status e duração. Comparar contagens agregadas da API com a Data API/RPC do Supabase antes de remover código legado. Auth e fotos continuam com Supabase sob JWT e RLS. A restrição da Data API é decisão posterior e separada.
+
+**Consequências:** a instrumentação não identifica pessoas ou instalações e não prova sozinha ausência de clientes antigos; exige correlação com versões Android distribuídas e métricas agregadas do Supabase. Rollback de flag compilada exige novo build web e APK, então RPCs, RLS, grants e Storage devem permanecer compatíveis durante a observação. O processo e os portões estão em `docs/BACKEND_PRODUCAO.md`.
+
+## DEC-027 — Reservar fotos antes da remoção física
+
+**Status:** implementada e ensaiada em Supabase staging; produção pendente.
+
+A API e o executor administrativo reivindicam somente fotos gerenciadas sem referência a qualquer aviso, inclusive oculto. Uma trava por caminho coordena a reivindicação com anexação/reupload, e um registro privado impede reutilizar o caminho após a remoção. O worker varre órfãos com mais de 24 horas, apaga bytes somente pela Storage API e confirma ausência antes de concluir; a próxima execução reconcilia interrupções após remoção física. Registros são removidos com a conta Auth. Não há nova chave administrativa na API pública nem cron de produção. URLs com sufixos são normalizadas e caminhos percent-encoded recusados para evitar variantes que contornem a trava. Clientes normais já geram nomes UUID sem encoding.
+
+A hospedagem de staging foi separada em projeto Vercel e Supabase próprios; produção mantém flags desligadas até backup, reconciliação, operação humana e observação. Ver `docs/BACKEND_PRODUCAO.md`.
+
+## DEC-028 — Cabeçalhos de segurança do projeto web
+
+**Status:** implementada e ensaiada localmente em 2026-09-30; deploy e validação de produção pendentes.
+
+**Decisão:** configurar os cabeçalhos em `vercel.json` para todas as rotas do projeto web, com CSP em modo de bloqueio e `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy que preserva a origem para OpenStreetMap e Permissions-Policy que mantém geolocalização/câmera na própria origem. A lista de origens da CSP cobre os provedores usados pelo build atual e a API separada de staging; qualquer nova origem web, incluindo analytics, exige revisão da política antes da ativação. O shell local do Capacitor não recebe esses cabeçalhos da Vercel.
+
+**Consequências:** o navegador bloqueia incorporação externa e recursos não autorizados; a CSP ainda permite estilos inline usados pelo aplicativo e pelas páginas estáticas. O teste local serve o build com os cabeçalhos do manifesto e verifica renderização e bloqueio de iframe. Publicação e smoke test remoto continuam necessários; uma mudança de domínio Supabase/API, mapas ou fontes deve ser conferida contra a CSP.

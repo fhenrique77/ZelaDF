@@ -56,10 +56,14 @@ Todas as execuções também verificam ausência de exceções JavaScript não t
 - `gps.ts`: reconhecer códigos do objeto `GeolocationPositionError`, que não precisa ser uma instância de `Error`. Cinco regressões Vitest cobrem negativa, timeout e indisponibilidade, inclusive mensagens localizadas. Referência: [códigos de erro de geolocalização](https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError/code).
 - `AccountDeletion.tsx`: fechar o diálogo nativo antes de desmontá-lo para restaurar o foco ao botão que o abriu; regressão validada nos dois layouts.
 
+## Atualização 26/09
+
+GPS permitido/indisponível, perda de rede e substituição de foto agora têm cenários desktop/mobile. Resultado: 39 cenários passaram na execução integral; dois seletores dos novos testes de foto foram corrigidos e os dois casos passaram em reexecução dirigida, totalizando 41 cenários aprovados (três skips intencionais). Build atual sincronizado com Android; APK debug/JVM aprovados. Auth/Storage/RLS reais receberam ensaio separado de 66 verificações em staging, sem equivaler a teste de navegador autenticado ou aparelho.
+
 ## Limites para lançamento
 
 Esta suíte valida o comportamento web e os pedidos enviados pelo cliente. Não certifica RLS, grants, triggers, concorrência real, entrega de OTP, OAuth Google, telefone/SMS, Storage remoto ou exclusão efetiva de conta. Os 84 contratos pgTAP e a validação de staging continuam pendentes.
 
-A emulação mobile não executa Android/Capacitor: câmera, permissões nativas, GPS real, push, deep links, ciclo de vida e instalação do AAB precisam de aparelho/emulador. Também faltam testes de rede realmente desconectada, substituição de foto no navegador, GPS permitido/indisponível no navegador e outros motores/tamanhos de tela. O build web desta revisão não foi sincronizado novamente com Android nem publicado; os APKs de 2026-09-08 não contêm as duas correções acima.
+A emulação mobile não executa Android/Capacitor: câmera, permissões nativas, GPS real, push, deep links, ciclo de vida e instalação do AAB precisam de aparelho/emulador. Outros motores/tamanhos de tela continuam fora da suíte. O build web desta revisão não foi sincronizado novamente com Android nem publicado; os APKs de 2026-09-08 não contêm as duas correções acima.
 
 Referências de implementação: [interceptação de APIs no Playwright](https://playwright.dev/docs/mock) e [servidor de testes](https://playwright.dev/docs/test-webserver).

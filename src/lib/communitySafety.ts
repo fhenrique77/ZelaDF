@@ -1,4 +1,11 @@
 import { isConfigured, supabase } from "./supabaseClient"
+import {
+  acceptCommunityTermsViaApi,
+  blockReportAuthorViaApi,
+  clearCommunityBlocksViaApi,
+  flagReportViaApi,
+  useCommunityStatusApi,
+} from "./communityStatusApi"
 export const COMMUNITY_TERMS_VERSION = "2026-09-13"
 export const COMMUNITY_TERMS_URL = "./terms.html"
 export const FLAG_REASONS = {
@@ -33,6 +40,10 @@ async function call(
   return data
 }
 export async function acceptCommunityTerms() {
+  if (useCommunityStatusApi()) {
+    await acceptCommunityTermsViaApi(COMMUNITY_TERMS_VERSION)
+    return
+  }
   if (!isConfigured) return // demonstracao local, sem upload ou gravacao externa
   await call("accept_community_terms", { p_version: COMMUNITY_TERMS_VERSION })
 }
@@ -44,6 +55,9 @@ export async function flagReport(
 ) {
   if (details.length > 500 || !(reason in FLAG_REASONS))
     throw new Error("Revise os dados da denúncia.")
+  if (useCommunityStatusApi()) {
+    return flagReportViaApi(reportId, target, reason, details.trim())
+  }
   const receipt = await call("flag_report", {
     p_report_id: reportId,
     p_target: target,
@@ -60,8 +74,10 @@ export async function flagReport(
   return receipt
 }
 export async function blockReportAuthor(reportId: string) {
+  if (useCommunityStatusApi()) return blockReportAuthorViaApi(reportId)
   await call("block_report_author", { p_report_id: reportId })
 }
 export async function clearCommunityBlocks() {
+  if (useCommunityStatusApi()) return clearCommunityBlocksViaApi()
   await call("clear_my_community_blocks")
 }

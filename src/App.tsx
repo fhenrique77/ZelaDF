@@ -403,6 +403,7 @@ export default function App() {
   const submitReport = async (
     data: Omit<Report, "id" | "createdAt" | "confirmations" | "status"> & {
       photoFile: File | null
+      idempotencyKey: string
     },
   ) => {
     const result = await createReportApi({
@@ -414,6 +415,7 @@ export default function App() {
       lat: data.lat,
       lng: data.lng,
       photoFile: data.photoFile,
+      idempotencyKey: data.idempotencyKey,
       authorId: user?.id,
     })
     const report = result.report

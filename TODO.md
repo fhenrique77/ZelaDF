@@ -1,6 +1,56 @@
 # ZelaDF — Próximas tarefas
 
-Revisão atual: 2026-09-13. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+Revisão atual: 2026-09-30. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+
+Verificação de 30/09: checks web/Python, APK debug e JVM passaram; os dois timeouts Playwright da execução integral passaram isolados. Ensaio integrado de staging repetido com 66 verificações aprovadas. Auditoria somente leitura atualizada; produção sem mudança de metadados desde 26/09, mas sem backup físico listado e com PITR desligado. O comando oficial pgTAP continua impedido pela ausência de Docker/Podman.
+
+
+**Segurança do site (30/09):** [avaliação e evidências](docs/SEGURANCA_SITE_2026-09-30.md).
+
+- [x] Configurar `frame-ancestors 'none'`, `X-Frame-Options: DENY` e ensaiar iframe no build web local (quatro páginas HTML).
+- [x] Configurar CSP e cabeçalhos complementares; ensaio local do build e fluxos desktop/mobile aprovados.
+- [x] Atualizar `firebase-admin` e dependências transitivas: `pnpm audit --prod` sem advisories, typechecks e testes locais aprovados.
+- [x] Publicar o projeto web com `vercel.json`; conferir cabeçalhos, mapa, leitura pública e bloqueio de iframe no alias de produção.
+- [ ] Validar login autenticado e fluxo de fotos no site de produção com conta de teste controlada; não executar mutações em contas reais.
+- [ ] Antes de promover migrations do backend ao Supabase de produção, obter backup completo restaurável e reconciliar schema/histórico conforme `supabase/README.md`.
+- [ ] Validar a versão Android instalada em aparelho, inclusive mapa, login e fotos, antes de distribuir nova versão; ativação de push ainda segue seus portões próprios.
+
+## Avanço confirmado em 26/09
+
+- [x] Criar staging Supabase isolado no plano Free e inicializar o schema sem dados de produção.
+- [x] Executar 118 assertions SQL com rollback e ensaio de 66 verificações Auth/Storage/RLS pela API local e hospedada.
+- [x] Implementar e ensaiar worker de fotos órfãs, reserva atômica, retomada e preservação de fotos recentes/vinculadas.
+- [x] Corrigir retry de upload para 400 Duplicate observado no Storage real.
+- [x] Publicar API de staging; validar CORS e medir leituras públicas (p95 700 ms em 20 amostras, staging vazio).
+- [x] Ampliar navegador para GPS permitido/indisponível, perda de rede e troca de foto; sincronizar Android, compilar APK debug e passar três testes JVM.
+- [x] Publicar atualização web de produção com flags FastAPI/push desligadas.
+- [x] Preparar CI web/Python/PostgreSQL isolado; execução GitHub ainda pendente.
+- [ ] Executar `supabase test db` em ambiente com Docker/Podman: assertions diretas passaram, mas não substituem esse portão do AGENTS.md.
+- [ ] Concluir backup completo/restauração e reconciliação do histórico/schema antes de promover migrations do backend.
+- [x] Revisar a mudança de fingerprint de `guard_photo_cleanup` em staging: corpo atual igual ao da migration final `20260926000400`.
+- [ ] Definir responsável/contato e operação de privacidade/moderação; proprietário confirmou que ainda não existem.
+- [ ] Obter aparelho e Play Console, assinatura/AAB e validar OAuth/fluxos nativos.
+- [ ] Medir adoção e carga representativa antes do encerramento do módulo 9. Push depende de decisão própria.
+
+Pendências consolidadas: [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md). Os itens de módulos abaixo preservam critérios amplos: a parte de staging avançou conforme este quadro; validação nativa e operação continuam abertas.
+
+- [x] Revisar e publicar a atualização web em 25/09, mantendo flags FastAPI/push desligadas; validar build remoto, domínio, páginas públicas, mapa/leitura e login desktop/mobile. Deployment `dpl_3afUR2huPchuiowq29beH1kNZs6x`; backend Python e migrations continuam sujeitos aos portões abaixo.
+
+- [ ] Reconciliar integralmente schema, grants, RLS, tabelas privadas e histórico de migrations de produção; obter backup completo restaurável antes de promover as migrations do backend.
+- [x] Implementar localmente a fundação FastAPI necessária e as quatro leituras do módulo 2, com testes e flag web desligada.
+- [x] Implementar localmente o módulo 3: consulta própria e solicitação idempotente de exclusão via FastAPI, com testes e flag desligada.
+- [x] Implementar localmente o módulo 4: CRUD de avisos, integração de fotos, criação idempotente e flag web desligada.
+- [x] Implementar localmente o módulo 5: voto e desfazer por FastAPI/RPC, resposta canônica, testes e flag própria desligada.
+- [x] Implementar localmente o módulo 6: termos, denúncias, bloqueios, consulta de operador/histórico e mudança de status por FastAPI, com flag própria desligada.
+- [x] Implementar localmente o módulo 7: executor administrativo retomável, trava de escritas, remoção de fotos por Storage API, purga transacional e verificação Auth/banco/Storage antes da conclusão.
+- [x] Preparar localmente o módulo 9: rótulo agregado de build nos pedidos FastAPI, log sanitizado por rota e roteiro de corte/rollback em `docs/BACKEND_PRODUCAO.md`.
+- [ ] Encerrar o módulo 9 após staging e observação: validar adoção por operação/versão Android nos logs agregados da API e Data API, definir suporte a instalações antigas, testar aparelho/carga/restauração, assumir custos/operação e só então retirar código legado. Manter RLS/RPCs/grants até decisão separada.
+- [ ] Validar módulos 1/2 em staging com duas contas, bloqueios/ocultação, CORS web/Android, p95 e preview Vercel; somente então decidir a ativação da flag e o rollback dos clientes instalados.
+- [ ] Validar módulo 3 em staging com duas contas, repetição do protocolo, sessão expirada, falhas da RPC, CORS e fluxo web/Android; definir atendimento operacional antes da ativação.
+- [ ] Auditar e aplicar em staging a migration de idempotência/fila do módulo 4 após comparar o schema real; testar RLS/Auth/Storage com duas contas, repetição, substituição e exclusão de fotos, limites e Android. Executor da fila/varredura implementado e ensaiado em 26/09; operação de produção ainda por definir.
+- [ ] Validar módulo 5 em staging com duas contas, concorrência real, avisos ocultos/bloqueados, falha após commit, rollback visual e contador comparado com `votes`; ensaiar web/Android antes de ligar a flag.
+- [ ] Validar módulo 6 em staging com cidadão, autor, bloqueado, operador e visitante; testar aceite ausente, denúncia repetida, limites, histórico privado, transição e motivo de status, ocultação e limpeza de foto. Definir operação humana de moderação e ensaiar web/Android antes de ligar a flag.
+- [ ] Validar módulo 7 em banco isolado e staging: comparar schema/FKs/Storage, aplicar migration controlada, duas contas, corrida com novas escritas, falha e retomada em cada etapa, foto órfã e externa, logout/refresh web/Android e segunda execução. Definir responsável, verificação humana, recuperação de acesso, canal, prazo e retenção do comprovante antes de executar com pedidos reais.
 
 - [x] Auditar o Supabase autenticado, salvar/restaurar backup lógico de avisos/votos e aplicar os quatro reparos de supabase/repairs.
 - [x] Corrigir no banco BUG-004/005, RLS de fotos, validações/status e fila de exclusão/limpeza de tokens; testar com fixtures revertidas.
@@ -42,7 +92,7 @@ Revisão atual: 2026-09-13. Os detalhes antigos abaixo são históricos; o estad
 - [x] Verificar padrões de credenciais no código, documentos e assets disponíveis sem imprimir valores: nenhuma ocorrência nos 121 arquivos inspecionados; detalhes e exclusões em `PLAY_STORE.md`.
 - [x] Bloquear a inicialização automática FCM/Analytics no manifesto Android e testar o bloqueio local de push no cliente/servidor.
 - [ ] Inspecionar o AAB final, manifesto mesclado e logs remotos; validar instalação limpa e atualização de uma instalação anteriormente registrada no FCM.
-- [ ] Investigar o HTTP 500 observado em `/api/send-push` na produção antes de habilitar o serviço; o handler local desativado retorna 503 nos testes.
+- [x] Investigar o HTTP 500 observado em `/api/send-push` na produção antes de habilitar o serviço; o handler local e a produção desativada retornam 503, conferidos em 26/09.
 
 **Bloqueios externos:** esta cópia não contém `.git`, então o histórico precisa ser auditado no repositório original. Firebase CLI/Google Cloud CLI e acesso administrativo não estão disponíveis neste ambiente, impedindo revogar ou rotacionar a chave. O valor do secret da Vercel não foi inspecionado e sua rotação não pode ser presumida.
 
@@ -157,6 +207,9 @@ Revisão atual: 2026-09-13. Os detalhes antigos abaixo são históricos; o estad
 - [x] Remover o token antes do logout, invalidar o registro nativo e permitir reatribuição segura no próximo registro de outra conta.
 - [x] Remover no servidor tokens que o FCM classifica como inválidos ou não registrados, sem registrar seus valores.
 - [x] Manter cliente e função desativados por padrão por flags separadas; remover o registro automático no login.
+- [x] Preparar webhook por ID de histórico e reivindicação atômica persistida para não reenviar duplicatas; função Vercel mantida como único consumidor. Migration apenas local.
+- [ ] Confirmar com o produto a ativação e a aceitação de entrega de melhor esforço (falha após reivindicação pode perder uma notificação).
+- [ ] Testar `claim_push_status_event` em PostgreSQL isolado, incluindo privilégios, duplicação concorrente e evento inexistente/status superado.
 - [ ] Auditar o schema remoto e aplicar/testar a migration primeiro em ambiente isolado.
 - [ ] Configurar e testar webhook, `PUSH_SECRET`, service role e Firebase nos ambientes externos.
 - [ ] Criar uma ação explícita de opt-in na interface antes de definir `VITE_PUSH_ENABLED=true`.
@@ -192,7 +245,7 @@ Revisão atual: 2026-09-13. Os detalhes antigos abaixo são históricos; o estad
 - [ ] Confirmar controlador, encarregado/canal, domínio, bases legais e prazos com responsáveis pelo produto e jurídico.
 - [ ] Auditar retenção, região, logs, backups e contratos nos ambientes dos provedores.
 - [ ] Aplicar e verificar a migration de saneamento somente após auditoria do baseline remoto.
-- [ ] Implementar exclusão/exportação de conta em backend confiável e cleanup de tokens push.
+- [x] Implementar localmente a execução administrativa da exclusão de conta e cleanup de tokens push; ensaio real pendente. Exportação de dados continua tarefa separada.
 - [ ] Aplicar e validar `20260905000300` em staging, executar seus 16 contratos pgTAP e testar o fluxo de solicitação com Auth/PostgREST reais.
 - [ ] Nomear responsável pela fila, confirmar canal para recuperação de acesso e testar o atendimento completo antes de habilitar o novo fluxo em produção.
 
@@ -299,7 +352,7 @@ Revisão atual: 2026-09-13. Os detalhes antigos abaixo são históricos; o estad
 - [x] Executar Playwright em Chromium desktop/mobile para visitante, login, autoria, criação/foto, edição/exclusão, votos, operador/status, privacidade, pedido de exclusão, falhas e GPS negado, com rede simulada.
 - [x] Corrigir e validar reconhecimento de erros de GPS por código e restauração de foco ao fechar o diálogo de exclusão.
 - [ ] Validar os mesmos fluxos com Auth/Storage/RLS reais em staging e ampliar navegador para GPS permitido/indisponível, rede desconectada e substituição de fotos.
-- [ ] Sincronizar o build web e recompilar Android para incorporar as correções de 2026-09-09, antes da validação em aparelho.
+- [x] Sincronizar o build web e recompilar Android; APK debug e JVM aprovados em 26/09, aparelho pendente.
 - [ ] Fazer o contrato pgTAP de casos permitidos/proibidos passar após corrigir RLS e estabilizar o baseline.
 - [x] Incluir `api/` na checagem TypeScript apropriada.
 - [x] Testar webhook/push com serviços simulados.

@@ -2,17 +2,14 @@ import type { VercelRequest, VercelResponse } from "@vercel/node"
 import { cert, getApps, initializeApp } from "firebase-admin/app"
 import { getMessaging } from "firebase-admin/messaging"
 import { createClient } from "@supabase/supabase-js"
+import { timingSafeEqual } from "node:crypto"
 import { logger } from "../src/lib/observability.js"
-import {
-  isAllowedStatusTransition,
-  isReportStatus,
-} from "../src/lib/reportStatus.js"
 
-type ReportRecord = {
-  id: string
-  status: string
+type ClaimedStatusEvent = {
+  report_id: string
+  author_id: string
   title: string
-  author_id?: string | null
+  to_status: "aberto" | "andamento" | "resolvido"
 }
 
 type PushMessage = {
@@ -34,6 +31,7 @@ type MessagingResponse = {
 
 export type SendPushDependencies = {
   expectedSecret?: string
+  claimEvent: (eventId: string) => Promise<ClaimedStatusEvent | null>
   findTokens: (authorId: string) => Promise<string[]>
   sendNotification: (message: PushMessage) => Promise<PushDeliveryResult>
   deleteTokens: (tokens: string[]) => Promise<void>
@@ -43,26 +41,18 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-function isReportRecord(value: unknown): value is ReportRecord {
-  return (
-    isObject(value) &&
-    typeof value.id === "string" &&
-    typeof value.status === "string" &&
-    typeof value.title === "string" &&
-    (value.author_id === undefined ||
-      value.author_id === null ||
-      typeof value.author_id === "string")
-  )
-}
-
-function previousStatus(value: unknown): string | null {
-  if (!isObject(value) || typeof value.status !== "string") return null
-  return value.status
-}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function requestSecret(req: VercelRequest): string | undefined {
   const header = req.headers.authorization ?? req.headers["x-webhook-secret"]
-  return Array.isArray(header) ? header[0] : header
+  return Array.isArray(header) ? undefined : header
+}
+
+function sameSecret(actual: string | undefined, expected: string): boolean {
+  if (!actual) return false
+  const left = Buffer.from(actual)
+  const right = Buffer.from(expected)
+  return left.length === right.length && timingSafeEqual(left, right)
 }
 
 export function invalidTokensFromResponses(
@@ -94,7 +84,7 @@ export function createSendPushHandler(dependencies: SendPushDependencies) {
       return res.status(503).json({ error: "Push service unavailable" })
     }
 
-    if (requestSecret(req) !== dependencies.expectedSecret) {
+    if (!sameSecret(requestSecret(req), dependencies.expectedSecret)) {
       return res.status(401).json({ error: "Unauthorized" })
     }
 
@@ -102,35 +92,22 @@ export function createSendPushHandler(dependencies: SendPushDependencies) {
       return res.status(400).json({ error: "Invalid webhook payload" })
     }
 
-    const { type, table, record, old_record: oldRecord } = req.body
+    const { type, table, record } = req.body
 
-    if (table !== "reports" || type !== "UPDATE") {
+    if (table !== "push_status_events" || type !== "INSERT") {
       return res.status(200).json({ message: "Webhook ignored" })
     }
 
-    const oldStatus = previousStatus(oldRecord)
-    if (!isReportRecord(record) || oldStatus === null) {
-      return res.status(400).json({ error: "Invalid report update payload" })
-    }
-
-    if (record.status === oldStatus) {
-      return res.status(200).json({ message: "Status unchanged" })
-    }
-
-    if (
-      !isReportStatus(oldStatus) ||
-      !isReportStatus(record.status) ||
-      !isAllowedStatusTransition(oldStatus, record.status)
-    ) {
-      return res.status(400).json({ error: "Invalid status transition" })
-    }
-
-    if (!record.author_id) {
-      return res.status(200).json({ message: "Report has no author" })
+    if (!isObject(record) || typeof record.id !== "string" || !UUID.test(record.id)) {
+      return res.status(400).json({ error: "Invalid status event payload" })
     }
 
     try {
-      const tokens = await dependencies.findTokens(record.author_id)
+      const event = await dependencies.claimEvent(record.id)
+      if (!event) {
+        return res.status(200).json({ message: "Event unavailable or already claimed" })
+      }
+      const tokens = await dependencies.findTokens(event.author_id)
       if (tokens.length === 0) {
         return res.status(200).json({ message: "No registered devices" })
       }
@@ -140,12 +117,12 @@ export function createSendPushHandler(dependencies: SendPushDependencies) {
         andamento: "está Em andamento",
         resolvido: "foi Resolvido",
       }
-      const label = statusLabels[record.status] ?? record.status
+      const label = statusLabels[event.to_status]
       const response = await dependencies.sendNotification({
         tokens,
         title: "Atualização no seu aviso!",
-        body: `O aviso "${record.title}" agora ${label}.`,
-        reportId: record.id,
+        body: `O aviso "${event.title}" agora ${label}.`,
+        reportId: event.report_id,
       })
 
       let invalidTokensRemoved = 0
@@ -190,8 +167,9 @@ function createProductionDependencies(): SendPushDependencies {
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT
+  const expectedSecret = process.env.PUSH_SECRET
 
-  if (!supabaseUrl || !supabaseServiceKey || !serviceAccountJson) {
+  if (!supabaseUrl || !supabaseServiceKey || !serviceAccountJson || !expectedSecret) {
     throw new Error("Push service configuration is incomplete")
   }
 
@@ -203,7 +181,24 @@ function createProductionDependencies(): SendPushDependencies {
     })
 
   return {
-    expectedSecret: process.env.PUSH_SECRET,
+    expectedSecret,
+    async claimEvent(eventId) {
+      const { data, error } = await supabase.rpc("claim_push_status_event", {
+        p_event_id: eventId,
+      })
+      if (error) throw error
+      if (!Array.isArray(data) || data.length > 1) {
+        throw new Error("Invalid push event claim response")
+      }
+      if (data.length === 0) return null
+      const row: unknown = data[0]
+      if (!isObject(row) || typeof row.report_id !== "string" ||
+          typeof row.author_id !== "string" || typeof row.title !== "string" ||
+          !["aberto", "andamento", "resolvido"].includes(String(row.to_status))) {
+        throw new Error("Invalid push event claim response")
+      }
+      return row as ClaimedStatusEvent
+    },
     async findTokens(authorId) {
       const { data, error } = await supabase
         .from("push_tokens")
@@ -228,27 +223,23 @@ function createProductionDependencies(): SendPushDependencies {
       if (error) throw error
     },
     async sendNotification(message) {
-      const response = await getMessaging(firebaseApp).sendEachForMulticast({
-        tokens: message.tokens,
-        notification: {
-          title: message.title,
-          body: message.body,
-        },
-        data: {
-          reportId: message.reportId,
-        },
-      })
-
-      const invalidTokens = invalidTokensFromResponses(
-        message.tokens,
-        response.responses,
-      )
-
-      return {
-        successCount: response.successCount,
-        failureCount: response.failureCount,
-        invalidTokens,
+      const result: PushDeliveryResult = {
+        successCount: 0,
+        failureCount: 0,
+        invalidTokens: [],
       }
+      for (let index = 0; index < message.tokens.length; index += 500) {
+        const tokens = message.tokens.slice(index, index + 500)
+        const response = await getMessaging(firebaseApp).sendEachForMulticast({
+          tokens,
+          notification: { title: message.title, body: message.body },
+          data: { reportId: message.reportId },
+        })
+        result.successCount += response.successCount
+        result.failureCount += response.failureCount
+        result.invalidTokens.push(...invalidTokensFromResponses(tokens, response.responses))
+      }
+      return result
     },
   }
 }

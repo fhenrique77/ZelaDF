@@ -2,6 +2,8 @@
 -- It covers visitor, authenticated user, author, operator and Storage access.
 
 begin;
+-- Synthetic metadata only; rolled back. Actual files use Storage API.
+set local storage.allow_delete_query = 'true';
 
 create extension if not exists pgtap with schema extensions;
 
@@ -82,8 +84,8 @@ select results_eq(
 
 select results_eq(
   $$select count(*) from pg_policies where schemaname = 'public' and tablename = 'reports'$$,
-  array[4::bigint],
-  'reports has only the four explicit policies'
+  array[5::bigint],
+  'reports has four ownership policies and restrictive community visibility'
 );
 
 select results_eq(
@@ -185,6 +187,7 @@ select set_config(
   true
 );
 set local role authenticated;
+select public.accept_community_terms('2026-09-13');
 
 select results_eq(
   $$select count(*) from public.push_tokens$$,
@@ -383,6 +386,7 @@ select set_config(
   true
 );
 set local role authenticated;
+select public.accept_community_terms('2026-09-13');
 
 select results_eq(
   $$select count(*) from storage.objects where name like '%other.jpg'$$,
@@ -414,6 +418,7 @@ select set_config(
   true
 );
 set local role authenticated;
+select public.accept_community_terms('2026-09-13');
 
 select results_eq(
   $$select public.current_user_is_operator()$$,

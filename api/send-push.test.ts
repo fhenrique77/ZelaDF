@@ -7,15 +7,15 @@ import {
 } from "./send-push"
 
 const updatePayload = {
-  type: "UPDATE",
-  table: "reports",
-  record: {
-    id: "10000000-0000-0000-0000-000000000001",
-    author_id: "20000000-0000-0000-0000-000000000001",
-    status: "resolvido",
-    title: "Buraco na via",
-  },
-  old_record: { status: "aberto" },
+  type: "INSERT",
+  table: "push_status_events",
+  record: { id: "10000000-0000-4000-8000-000000000001" },
+}
+const claimedEvent = {
+  report_id: "10000000-0000-4000-8000-000000000002",
+  author_id: "20000000-0000-4000-8000-000000000001",
+  title: "Buraco na via",
+  to_status: "resolvido" as const,
 }
 
 type ResponseState = {
@@ -28,6 +28,7 @@ function createDependencies(
 ): SendPushDependencies {
   return {
     expectedSecret: "test-secret",
+    claimEvent: vi.fn().mockResolvedValue(claimedEvent),
     findTokens: vi.fn().mockResolvedValue(["device-token"]),
     deleteTokens: vi.fn().mockResolvedValue(undefined),
     sendNotification: vi.fn().mockResolvedValue({
@@ -100,55 +101,58 @@ describe("send-push webhook", () => {
   })
 
   it("rejeita segredo incorreto", async () => {
-    const state = await execute(createDependencies(), {
+    const dependencies = createDependencies()
+    const state = await execute(dependencies, {
       headers: { authorization: "wrong-secret" },
     })
 
     expect(state).toEqual({ status: 401, body: { error: "Unauthorized" } })
+    expect(dependencies.claimEvent).not.toHaveBeenCalled()
   })
 
-  it("rejeita update de report malformado", async () => {
+  it("rejeita evento de histórico malformado", async () => {
     const state = await execute(createDependencies(), {
-      body: { type: "UPDATE", table: "reports", record: {} },
+      body: { type: "INSERT", table: "push_status_events", record: {} },
     })
 
     expect(state).toEqual({
       status: 400,
-      body: { error: "Invalid report update payload" },
+      body: { error: "Invalid status event payload" },
     })
   })
 
-  it("ignora eventos sem mudança de status", async () => {
+  it("ignora updates de reports e outros eventos", async () => {
     const dependencies = createDependencies()
     const state = await execute(dependencies, {
       body: {
         ...updatePayload,
-        old_record: { status: "resolvido" },
+        type: "UPDATE",
+        table: "reports",
       },
     })
 
     expect(state).toEqual({
       status: 200,
-      body: { message: "Status unchanged" },
+      body: { message: "Webhook ignored" },
     })
-    expect(dependencies.findTokens).not.toHaveBeenCalled()
+    expect(dependencies.claimEvent).not.toHaveBeenCalled()
   })
 
-  it("rejeita transição fora do ciclo operacional", async () => {
-    const dependencies = createDependencies()
-    const state = await execute(dependencies, {
-      body: {
-        ...updatePayload,
-        record: { ...updatePayload.record, status: "andamento" },
-        old_record: { status: "resolvido" },
-      },
+  it("não envia duas vezes o mesmo evento persistido", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined)
+    const dependencies = createDependencies({
+      claimEvent: vi.fn().mockResolvedValueOnce(claimedEvent).mockResolvedValue(null),
     })
+    const first = await execute(dependencies, {})
+    const state = await execute(dependencies, {})
 
+    expect(first.status).toBe(200)
     expect(state).toEqual({
-      status: 400,
-      body: { error: "Invalid status transition" },
+      status: 200,
+      body: { message: "Event unavailable or already claimed" },
     })
-    expect(dependencies.findTokens).not.toHaveBeenCalled()
+    expect(dependencies.findTokens).toHaveBeenCalledTimes(1)
+    expect(dependencies.sendNotification).toHaveBeenCalledTimes(1)
   })
 
   it("consulta tokens e envia notificação por dependências simuladas", async () => {
@@ -156,14 +160,13 @@ describe("send-push webhook", () => {
     const dependencies = createDependencies()
     const state = await execute(dependencies, {})
 
-    expect(dependencies.findTokens).toHaveBeenCalledWith(
-      updatePayload.record.author_id,
-    )
+    expect(dependencies.claimEvent).toHaveBeenCalledWith(updatePayload.record.id)
+    expect(dependencies.findTokens).toHaveBeenCalledWith(claimedEvent.author_id)
     expect(dependencies.sendNotification).toHaveBeenCalledWith({
       tokens: ["device-token"],
       title: "Atualização no seu aviso!",
       body: 'O aviso "Buraco na via" agora foi Resolvido.',
-      reportId: updatePayload.record.id,
+      reportId: claimedEvent.report_id,
     })
     expect(state).toEqual({
       status: 200,

@@ -3,6 +3,10 @@
 *.jks
 *.keystore
 android/
+backend/
+.pytest_cache/
+__pycache__/
+*.pyc
 dist/
 node_modules/
 .tools/

@@ -14,7 +14,8 @@
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
-    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json"
+    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
+    "test:security-headers": "pnpm run build && node e2e/security-headers.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -25,7 +26,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
     "@supabase/supabase-js": "^2.112.2",
-    "firebase-admin": "^14.2.0",
+    "firebase-admin": "^14.5.0",
     "leaflet": "^1.9.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

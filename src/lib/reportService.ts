@@ -13,6 +13,15 @@ import {
   validateReport,
 } from "./reportValidation"
 import { validateStatusTransition } from "./reportStatus"
+import { fetchMyVotesViaApi, fetchReportsViaApi, useReportReadApi } from "./reportReadApi"
+import { createReportViaApi, deleteReportViaApi, updateReportViaApi, useReportWriteApi } from "./reportWriteApi"
+import { setReportVoteViaApi, useReportVoteApi } from "./reportVoteApi"
+import {
+  changeReportStatusViaApi,
+  fetchOperatorAccessViaApi,
+  fetchReportStatusHistoryViaApi,
+  useCommunityStatusApi,
+} from "./communityStatusApi"
 
 const PHOTO_BUCKET = "report-photos"
 const REPORT_PUBLIC_COLUMNS =
@@ -284,6 +293,7 @@ export async function fetchReports(
   if (query.onlyMine && !query.userId) {
     return { reports: [], truncated: false, source: "supabase" }
   }
+  if (useReportReadApi()) return fetchReportsViaApi({ ...query, limit })
 
   const south = Math.min(query.bounds.south, query.bounds.north)
   const north = Math.max(query.bounds.south, query.bounds.north)
@@ -393,6 +403,7 @@ export async function fetchMyVotes(
   if (!isConfigured || !supabase) return new Set()
   if (!userId) return new Set()
   if (reportIds.length === 0) return new Set()
+  if (useReportReadApi()) return fetchMyVotesViaApi(reportIds)
 
   const { data, error } = await supabase
     .from("votes")
@@ -425,6 +436,7 @@ type CreateReportInput = {
   lng: number
   photoFile: File | null
   authorId?: string
+  idempotencyKey?: string
 }
 
 export type CreateReportResult = {
@@ -445,6 +457,20 @@ export async function createReport(
   const validationErrors = validateReport(normalizedInput)
   if (validationErrors.length > 0) {
     throw new ReportServiceError("validation", validationErrors[0])
+  }
+
+  if (useReportWriteApi()) {
+    return createReportViaApi({
+      category: normalizedInput.category,
+      title: normalizedInput.title,
+      description: normalizedInput.description,
+      ra: normalizedInput.ra,
+      address: normalizedInput.address,
+      lat: normalizedInput.lat,
+      lng: normalizedInput.lng,
+      photoFile: normalizedInput.photoFile,
+      idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
+    })
   }
 
   if (!isConfigured || !supabase) {
@@ -576,6 +602,7 @@ export async function setReportVote(
   reportId: string,
   voted: boolean,
 ): Promise<VoteMutationResult> {
+  if (useReportVoteApi()) return setReportVoteViaApi(reportId, voted)
   if (!isConfigured || !supabase) {
     return { voted, confirmations: null }
   }
@@ -626,6 +653,7 @@ export type DeleteReportResult = {
 export async function deleteReport(
   reportId: string,
 ): Promise<DeleteReportResult> {
+  if (useReportWriteApi()) return deleteReportViaApi(reportId)
   if (!isConfigured || !supabase) return { photoCleanupFailed: false }
 
   const { data, error } = await supabase
@@ -691,6 +719,16 @@ export async function updateReport(
   })
   if (validationErrors.length > 0) {
     throw new ReportServiceError("validation", validationErrors[0])
+  }
+
+  if (useReportWriteApi()) {
+    return updateReportViaApi({
+      id: input.id,
+      title: normalizedTitle,
+      description: normalizedDescription,
+      category: input.category,
+      photoFile: input.photoFile,
+    })
   }
 
   const updates: Record<string, string> = {}
@@ -773,6 +811,14 @@ type DbStatusHistory = {
 }
 
 export async function fetchOperatorAccess(): Promise<boolean> {
+  if (useCommunityStatusApi()) {
+    try {
+      return await fetchOperatorAccessViaApi()
+    } catch {
+      logger.warn("report.operator_access_unavailable", { code: "status", operation: "fetch" })
+      return false
+    }
+  }
   if (!isConfigured || !supabase) return false
 
   const { data, error } = await supabase.rpc("current_user_is_operator")
@@ -790,6 +836,7 @@ export async function fetchOperatorAccess(): Promise<boolean> {
 export async function fetchReportStatusHistory(
   reportId: string,
 ): Promise<ReportStatusHistory[]> {
+  if (useCommunityStatusApi()) return fetchReportStatusHistoryViaApi(reportId)
   if (!isConfigured || !supabase) return []
 
   const { data, error } = await supabase
@@ -841,6 +888,10 @@ export async function changeReportStatus(
   )
   if (validationError) {
     throw new ReportServiceError("validation", validationError)
+  }
+
+  if (useCommunityStatusApi()) {
+    return changeReportStatusViaApi(input.reportId, input.nextStatus, reason)
   }
 
   const { error } = await supabase.rpc("change_report_status", {

@@ -60,6 +60,9 @@ Unsplash fornece imagens apenas aos dados de demonstração. Não há projeto iO
 
 ## Arquitetura
 
+**Atualização confirmada em 26/09:** existe API FastAPI em projeto Vercel separado e Supabase de staging separado, ensaiados com contas sintéticas. Produção continua no fluxo Supabase direto por flags; os executores administrativos de exclusão e fotos não integram a API pública. Evidências e limites em `docs/BACKEND_PRODUCAO.md`.
+
+
 ### Núcleo funcional
 
 ```text
@@ -87,19 +90,19 @@ React
 ### Push preparado e inativo
 
 ```text
-UPDATE de status no Supabase
--> webhook externo não versionado
+RPC de status -> histórico -> push_status_events (somente ID)
+-> webhook externo a configurar
 -> Vercel Function POST /api/send-push
--> consulta à tabela push_tokens preparada em migration local
+-> reivindicação única e consulta a push_tokens
 -> Firebase Cloud Messaging
 -> aplicativo Android
 ```
 
-Cliente, função, migration, RLS e cleanup de tokens inválidos existem localmente. O ciclo de status agora é protegido por operador/RPC no SQL local e a função rejeita transições fora desse contrato. Cliente e função push permanecem desativados por padrão; webhook, secrets, migrations remotas e funcionamento em aparelho não são confirmados.
+Cliente, função, migrations, RLS e cleanup de tokens inválidos existem localmente. O ciclo de status é protegido por operador/RPC; a função de push só aceita ID de evento reivindicado no banco e mantém entrega de melhor esforço. Cliente e função push permanecem desativados por padrão; webhook, secrets, migration nova e funcionamento em aparelho não são confirmados.
 
 ## Característica arquitetural importante
 
-O CRUD principal não passa por um backend próprio. O frontend se comunica diretamente com o Supabase.
+O CRUD principal ainda se comunica diretamente com o Supabase por padrão. Rotas FastAPI ensaiadas em staging e flags de build permitem migrar cada fluxo separadamente, mas não há corte de tráfego confirmado. O módulo 9 prepara rótulos agregados de build para medir adoção e mantém os caminhos diretos até validação real.
 
 Consequentemente, as policies de Row Level Security são uma parte crítica da segurança. Validações ou verificações de autoria no React podem ser contornadas por chamadas diretas ao Supabase.
 

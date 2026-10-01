@@ -19,6 +19,13 @@ const expectedMigrations = [
   "20260905000200_secure_reports_votes_and_storage.sql",
   "20260905000300_create_account_deletion_requests.sql",
   "20260913000100_community_safety.sql",
+  "20260924000100_fastapi_report_create_idempotency.sql",
+  "20260924000200_account_deletion_execution.sql",
+  "20260925000100_push_status_event_claim.sql",
+  "20260926000100_report_photo_cleanup.sql",
+  "20260926000200_fix_photo_cleanup_guard.sql",
+  "20260926000300_resume_completed_photo_cleanup.sql",
+  "20260926000400_normalize_cleanup_photo_paths.sql",
 ]
 
 describe("Supabase migration structure", () => {
@@ -78,6 +85,20 @@ describe("Supabase migration structure", () => {
     expect(push).toContain(
       "REVOKE ALL ON SCHEMA zeladf_private FROM PUBLIC, anon, authenticated",
     )
+  })
+
+  it("claims only committed status history events for the service role", () => {
+    const push = read(`supabase/migrations/${expectedMigrations[14]}`)
+    expect(push).toContain("CREATE TABLE public.push_status_events")
+    expect(push).toContain("REFERENCES public.report_status_history(id) ON DELETE CASCADE")
+    expect(push).toContain("ALTER TABLE public.push_status_events ENABLE ROW LEVEL SECURITY")
+    expect(push).toContain("REVOKE ALL ON public.push_status_events FROM PUBLIC, anon, authenticated")
+    expect(push).toContain("AFTER INSERT ON public.report_status_history")
+    expect(push).toContain("REFERENCES public.push_status_events(id) ON DELETE CASCADE")
+    expect(push).toContain("r.status = h.to_status")
+    expect(push).toContain("ON CONFLICT (event_id) DO NOTHING")
+    expect(push).toContain("REVOKE ALL ON FUNCTION public.claim_push_status_event(UUID) FROM PUBLIC, anon, authenticated")
+    expect(push).toContain("GRANT EXECUTE ON FUNCTION public.claim_push_status_event(UUID) TO service_role")
   })
 
   it("protects operator membership and records controlled status transitions", () => {
@@ -241,7 +262,7 @@ describe("Supabase migration structure", () => {
       "",
     )
 
-    expect(audit).toContain("SELECT current_setting")
+    expect(audit).toContain("current_setting('transaction_read_only')")
     expect(audit).toContain(
       "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
     )

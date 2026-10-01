@@ -2,6 +2,14 @@
 
 Este documento descreve o comportamento técnico esperado. Ele não substitui revisão jurídica nem confirma o estado dos serviços remotos.
 
+## Situação atual — 26/09/2026
+
+**Documentado — informado pelo proprietário:** ainda não há responsável/contato definido para privacidade e moderação. Menções anteriores a intenção de atendimento manual não equivalem a operação estabelecida.
+
+**Confirmado por execução em staging:** exclusão de contas sintéticas removeu fotos físicas pela Storage API, avisos/votos e Auth, verificou a conclusão e preservou a outra conta. Produção ainda não recebeu esse executor nem novas migrations. A limpeza de órfãos também foi ensaiada: apenas arquivos gerenciados sem referência com mais de 24 horas; fotos recentes ou vinculadas são preservadas. Reserva privada contém conta, caminho e timestamps, impede reuso e é removida em cascade com a conta. Não há cron de produção nem nova coleta pública. Retenção operacional dos comprovantes e backups permanece por definir.
+
+Região de produção/staging: São Paulo; a consulta de backups não listou restauração disponível e PITR está desligado. Auditoria de logs/contratos e backup completo de Auth/Storage continuam pendentes. Evidências: [validação atual](docs/BACKEND_PRODUCAO.md).
+
 ## Regras preservadas
 
 - A identidade pública permitida é somente `Cidadão`.
@@ -20,7 +28,7 @@ Este documento descreve o comportamento técnico esperado. Ele não substitui re
 
 | Dado | Regra do produto | Estado técnico atual |
 | --- | --- | --- |
-| Conta e identidades Auth | Manter enquanto a conta estiver ativa; remover após pedido verificado, salvo retenção legal obrigatória | Não há exclusão de conta automatizada |
+| Conta e identidades Auth | Manter enquanto a conta estiver ativa; remover após pedido verificado, salvo retenção legal obrigatória | Executor administrativo ensaiado com Auth/Storage reais em staging; produção pendente |
 | Solicitações de exclusão | Manter enquanto a conta existir e o pedido estiver em atendimento; excluir com a conta | Fila/RPC instaladas e ensaiadas remotamente; proprietário assumiu atendimento manual, ainda sem ensaio completo de execução |
 | Avisos | Manter até exclusão pelo autor ou exclusão da conta; status resolvido não apaga automaticamente | Exclusão individual existe no cliente |
 | Histórico de status | Manter enquanto o aviso existir; excluir com o aviso; anonimizar o operador quando sua conta for removida | Contrato instalado remotamente com cascade no aviso e SET NULL no ator; transição/histórico testados com fixtures revertidas |
@@ -28,11 +36,19 @@ Este documento descreve o comportamento técnico esperado. Ele não substitui re
 | Votos | Manter até remoção do voto, exclusão do aviso ou da conta | Acesso restrito e FK Auth com cascade instalados; referências históricas auditadas e FK validada; contador canônico testado |
 | Identificador local de dispositivo | Manter no navegador até limpeza dos dados locais e no voto enquanto ele existir | Mantido na RPC somente por compatibilidade com a coluna histórica; não define unicidade nem autorização |
 | Tokens push | Manter somente enquanto a conta/dispositivo estiver inscrito; remover no logout, troca de conta, pedido de exclusão ou resposta de token inválido | RLS, reassociação, remoção própria e cascade corrigidos remotamente com fixtures sintéticas; recurso permanece desativado |
+| Eventos push | Manter somente enquanto existir a entrada de histórico de status do aviso; remover em cascade com esse histórico | Migration local do módulo 8, sem aplicação remota; webhook previsto recebe somente ID do evento, sem motivo ou operador |
+| Reivindicações de evento push | Manter somente enquanto existir a entrada de histórico de status do aviso; remover em cascade com esse histórico | Migration local do módulo 8, sem aplicação remota; guarda apenas ID do evento e horário da reivindicação |
 | Logs e backups de provedores | Limitar ao necessário para segurança/operação e respeitar o ciclo configurado em cada provedor | Prazos remotos não verificáveis pelo repositório |
+
+**Confirmado no código — observação FastAPI:** as chamadas à API enviam somente plataforma e versão do pacote, sem identificador de instalação. O logger próprio registra método, template da rota, status, duração, ID aleatório da requisição e build presente na lista permitida; não registra parâmetros, corpo, Bearer ou mensagens de exceção. As respostas de produto usam `Cache-Control: no-store`, inclusive leituras com autoria/votos próprios. O logger HTTP genérico não é habilitado pela aplicação. Retenção, acesso e logs de infraestrutura dos provedores ainda precisam de conferência antes da ativação da API.
+
+**Confirmado no código:** o módulo FastAPI 5 recebe somente o UUID do aviso e o estado desejado da confirmação, valida a sessão e chama `set_report_vote` com o JWT da conta. A resposta contém apenas voto próprio e contador; a API não expõe `votes.user_id` nem adiciona dado de retenção. A flag `VITE_API_VOTES_ENABLED` permanece desligada e o fluxo não foi ensaiado em staging.
+
+**Confirmado no código:** o módulo FastAPI 6 recebe aceite, denúncia e bloqueio com JWT da conta e encaminha às RPCs existentes. A denúncia retorna só protocolo; o bloqueio não devolve ID Auth. Histórico de status passa por checagem do papel interno e RLS, e sua resposta contém somente status, motivo e data, sem `changed_by`. Mudança de status usa exclusivamente a RPC transacional. A fila privada de denúncias e as decisões de moderação permanecem no canal administrativo descrito em `release/COMMUNITY_MODERATION.md`, sem acesso concedido ao operador de avisos. A flag permanece desligada e o novo caminho não foi ensaiado com dados remotos.
 
 ## Estado operacional em 2026-09-13
 
-**Documentado — confirmado pelo proprietário:** ele acompanhará e atenderá manualmente os pedidos no Supabase. A fila privada/RPC já foi instalada e testada com contas sintéticas revertidas. Não há exclusão automática. Identidade completa, canal operacional, prazo e ensaio de atendimento com Storage/Auth continuam pendentes.
+**Documentado — confirmado pelo proprietário:** ele acompanhará e atenderá manualmente os pedidos no Supabase. A fila privada/RPC já foi instalada e testada com contas sintéticas revertidas. O executor do módulo 7 existe apenas no repositório; não é um serviço automático implantado. Identidade completa, canal operacional, prazo e ensaio de atendimento com Storage/Auth continuam pendentes.
 
 **Confirmado no código:** a espera de OTP armazena somente o timestamp zeladf:otp-retry-at, sem e-mail/código. Vale por até 60 segundos; o valor vencido é removido na próxima consulta do controle. Armazenamento indisponível usa memória.
 
@@ -56,6 +72,10 @@ Para cada pedido de acesso, correção ou exclusão:
 
 **Implementado e ensaiado em SQL remoto; atendimento real e Android pendentes:** o contrato de fila da migration `20260905000300` foi incorporado ao reparo remoto de 2026-09-13; os 16 contratos pgTAP completos ainda não foram executados. Sem a migration ou com falha de acesso, o formulário apresenta indisponibilidade, sem inventar protocolo. A exclusão efetiva não é automática e o lançamento depende de responsável, canal de recuperação de acesso, prazo definido e ensaio completo do atendimento.
 
+**Confirmado no código:** o módulo FastAPI 3 oferece consulta própria e envio pela mesma RPC, atrás de `VITE_API_DELETION_REQUESTS_ENABLED=false`. O POST não aceita corpo ou identidade escolhida pelo cliente e só devolve protocolo validado; falhas não acionam automaticamente o caminho legado. A API ainda não foi ensaiada em staging e não executa a remoção da conta.
+
+**Confirmado no código:** o módulo FastAPI 4 mantém o envio de bytes das fotos diretamente ao Storage com JWT, em pasta da conta. A API recebe o caminho, consulta metadados sob a RLS da conta e usa RPC/RLS para associar e alterar avisos. A criação guarda UUID de idempotência, hash do conteúdo, ID do aviso e data numa tabela privada vinculada à conta; esses registros somem por cascade na exclusão Auth. Falhas conhecidas de remoção registram caminho e conta numa fila privada, também vinculada por cascade. Respostas públicas não incluem autoria interna. A nova migration não foi aplicada e o fluxo não foi ensaiado em staging. Como Storage e banco não compartilham transação, um upload sem chamada à API ou uma remoção malsucedida pode manter arquivo público órfão; executor da fila e varredura dos demais órfãos ainda precisam de desenho e validação antes de ativar a flag.
+
 ## Atendimento a validar antes da ativação
 
 1. Designar responsável de privacidade e substituto, confirmar canal de contato e definir periodicidade de consulta da fila e prazo de resposta. Esses dados ainda não foram fornecidos.
@@ -67,19 +87,18 @@ Para cada pedido de acesso, correção ou exclusão:
 
 Este procedimento ainda não é um serviço operacional comprovado: o proprietário assumiu atendimento manual, mas faltam canal/periodicidade e execução real validada. Não há worker ou painel de privacidade.
 
-## Exclusão efetiva de conta a implementar
+## Exclusão efetiva de conta — rotina local
 
-A operação deve existir em backend confiável, nunca no cliente com `service_role`, e ser idempotente:
+A rotina administrativa `backend/account_deletion.py` e a migration local `20260924000200_account_deletion_execution.sql` implementam a sequência abaixo. A chave `service_role` existe apenas no ambiente do operador, nunca no cliente ou nas rotas públicas. A rotina foi ensaiada em Supabase staging com contas sintéticas; produção pendente:
 
-1. Reautenticar o usuário e obter o ID exclusivamente da sessão validada.
-2. Bloquear novas mutações da conta durante a operação.
-3. Listar apenas fotos pertencentes aos avisos do usuário e removê-las pela Storage API.
-4. Em transação de banco, remover tokens push, votos e avisos do usuário; votos dos avisos devem respeitar cascade.
-5. Excluir o usuário com a API administrativa do Supabase.
-6. Encerrar a sessão local e invalidar o que a infraestrutura permitir.
-7. Registrar apenas IDs de operação, resultado e timestamps sanitizados.
+1. O responsável confirma novamente identidade e intenção em canal autenticado e mantém uma referência UUID aleatória em registro restrito; recuperação de acesso exige procedimento separado. A rotina recebe protocolo e UUID Auth esperado, confere ambos com a fila e guarda só o hash da referência.
+2. Um job privado e triggers bloqueiam novas escritas da identidade, inclusive com JWT antigo; uma trava transacional fecha a corrida com escritas já iniciadas.
+3. O inventário considera objetos do bucket pertencentes à conta e sua pasta, inclusive uploads órfãos; ownership conflitante, outros buckets e URLs legadas suspendem o job para revisão. A remoção é feita somente pela Storage API, em lotes.
+4. Uma RPC transacional remove votos, avisos e tokens push depois de confirmar que não restou objeto. As demais referências usam as FKs/cascades auditadas.
+5. A ferramenta exclui o usuário pela API administrativa de Auth, consulta novamente Auth e chama a RPC de conclusão, que confere Storage, banco e fila. O comprovante privado guarda protocolo, hash de verificação, resultado e timestamps; o UUID Auth é apagado dele.
+6. O operador confirma o resultado ao titular pelo canal verificado. O cliente aberto precisa encerrar a sessão local quando Auth a invalidar; isso ainda deve ser ensaiado em web/Android. Refresh tokens são invalidados pela exclusão Auth, enquanto access tokens emitidos antes podem persistir até expirar.
 
-Falhas parciais devem permitir nova execução segura. A rotina precisa considerar que objetos do Storage podem impedir a exclusão do usuário e que um JWT já emitido pode permanecer válido até expirar.
+Falhas parciais deixam o estágio `frozen` ou `database_done` para retomada segura; nunca apresentam `in_review` como conclusão. O início não deve ocorrer sem verificação humana, responsável e ambiente validados. A migration não deve ser removida enquanto existir job em andamento. A retenção do comprovante e dos backups ainda depende de decisão do controlador.
 
 ## Antes de ativar em produção
 

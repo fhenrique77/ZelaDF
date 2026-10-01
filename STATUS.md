@@ -1,10 +1,34 @@
 # ZelaDF — Status atual
 
-Revisão: 2026-09-23. O código local e as evidências abaixo prevalecem sobre registros anteriores.
+Revisão: 2026-09-30. Pendências para produção em [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md).
+
+**Verificação de 30/09:** três typechecks, 171 Vitest, 18 testes Python e build web passaram. Playwright teve 39 aprovações, duas expirações ao carregar a página e três skips na execução integral; os dois casos expirados passaram em reexecução isolada. Capacitor sincronizado, três testes JVM e APK debug compilados. O ensaio integrado da API hospedada e do Supabase staging passou novamente em 66 verificações com contas sintéticas. Home, política e exclusão web de produção, além de `/health` e `/ready` da API de staging, responderam HTTP 200. Isso não valida aparelho Android nem carga de produção.
+
+**Auditoria somente leitura de 30/09:** o relatório principal de produção (823 itens) e o das tabelas privadas (136 itens) são idênticos aos de 26/09. Produção e staging continuam divergentes no relatório principal: há diferenças em `push_tokens`, `reports.author_name`, FKs Auth e objetos novos do backend. O histórico remoto de ambos não registra as 19 versões locais; não houve reconciliação do baseline/histórico. Em staging, somente o fingerprint de `guard_photo_cleanup` mudou desde 26/09; a comparação em memória confirmou que o corpo atual coincide com a migration final `20260926000400`. A consulta de backups físicos de produção retornou lista vazia e PITR desligado. `supabase test db --linked` foi tentado no staging, mas a CLI parou antes dos testes por ausência de Docker/Podman. Nenhuma migration ou deploy de produção foi executado nesta verificação.
+
+**Avaliação ofensiva de 30/09:** o site é incorporável por iframe externo (risco de clickjacking); faltam CSP e outros cabeçalhos de defesa. Consultas anônimas de colunas privadas foram negadas; nenhum XSS foi executado no teste sintético do bundle publicado. `pnpm audit --prod` apontou seis advisories locais transitivas de `firebase-admin`, cuja exposição no push desativado não foi demonstrada. Evidências e limites em [docs/SEGURANCA_SITE_2026-09-30.md](docs/SEGURANCA_SITE_2026-09-30.md).
+
+**Confirmado no código local após a avaliação:** `vercel.json` define CSP com `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy e Permissions-Policy em todas as rotas do projeto web. `firebase-admin` foi atualizado para 14.5.0 e o lockfile usa versões corrigidas de `@grpc/grpc-js`, `brace-expansion` e `uuid`; `pnpm audit --prod` retorna zero advisories. Três typechecks, 171 Vitest, build web, 41 testes Playwright (três skips) e o ensaio de CSP/iframe no build passaram. **Confirmado externamente em 30/09:** web de produção publicada em `dpl_74kV3oEAURJZZzVLELWBtg2PY7FF` no alias https://zela-df.vercel.app; rollback web: `dpl_AqrpQp2nC8UfFbq6cZqcNAcyYmvu`. Cabeçalhos conferidos na home, privacidade, termos, exclusão e função push (503 desativada). Chromium desktop/mobile carregou app, mapa e leitura pública do Supabase sem violação de CSP; iframe externo foi bloqueado nas quatro páginas HTML. O dry-run passou em uma cópia limpa de 54 arquivos; a pasta `.pytest_cache` impede varrer diretamente o workspace. **Estado externo não verificável:** Android instalado ainda não foi validado. Nenhuma migration Supabase foi aplicada neste rollout: a correção web não altera o banco, e as migrations de backend pendentes exigem backup completo e reconciliação do schema/histórico de produção.
+
+## Deploy e validação atuais
+
+**Confirmado por execução:** web promovida para https://zela-df.vercel.app, deployment `dpl_AqrpQp2nC8UfFbq6cZqcNAcyYmvu`, com FastAPI/push desligados no produto. API isolada publicada em https://zeladf-api-staging.vercel.app; ensaio completo de 66 verificações aprovado usando Auth, RLS e Storage reais com contas sintéticas removidas ao final. Novas migrations aplicadas somente no staging criado no plano Free.
+
+**Confirmado no código e por execução:** worker de fotos órfãs com reserva transacional, proteção contra reassociação e retomada; retry do upload corrigido para o erro real 400 Duplicate. 118 assertions pgTAP passaram pela Management API. O comando oficial `supabase test db` segue pendente por ausência de Docker/Podman, conforme portão do AGENTS.md. CI preparado, sem execução GitHub comprovada.
+
+Validação local: 171 Vitest, 18 Python, três typechecks, build web local/remoto, 41 cenários Playwright aprovados entre execução integral e reexecução dos dois novos casos de foto (três skips intencionais), sync Capacitor, APK debug e três testes JVM. Aparelho/AAB não disponíveis. CORS web/Capacitor validado; p95 de leitura pública em staging vazio 700 ms (20 amostras), sem equivalência a carga de produção.
+
+**Pendências para promoção do backend:** backup completo com restauração de Auth/Storage, reconciliação integral do schema/histórico, portão oficial pgTAP, atendimento de privacidade/moderação, validação nativa e observação de adoção. Não houve migration nova em produção nem encerramento do módulo 9. Responsável/contato e Play Console continuam indisponíveis segundo o proprietário.
 
 ## Repositório
 
 **Confirmado no código:** a cópia foi preparada como repositório Git para `fhenrique77/ZelaDF`. O primeiro commit inclui código, projeto Android, SQL, documentação e testes. `.env*`, backups em `.tools/`, builds, resultados de testes e configurações pessoais da IDE são ignorados. Os arquivos candidatos foram verificados por padrões comuns de chaves privadas e tokens; essa verificação não substitui auditoria de credenciais ou de um histórico Git anterior.
+
+## Backend FastAPI
+
+**Confirmado no código:** módulos 1 a 7 implementados; executores administrativos de exclusão e limpeza de fotos separados da API pública. As cinco flags por fluxo mantêm compatibilidade com o cliente atual. Módulo 8 permanece na função TypeScript, desativado; reivindicação concorrente de evento foi ensaiada em staging sem FCM. Módulo 9 possui log por build/rota e roteiro de observação, ainda sem corte de tráfego.
+
+**Confirmado por execução:** criação/repetição concorrente, votos, comunidade, operador/status, fotos e exclusão Auth/Storage/banco passaram no staging e na API hospedada. O deploy contém somente o backend público, Python 3.12 e configuração FastAPI explícita, sem service role ou executores administrativos. Operação contínua, restauração e dispositivo não foram certificados. Consulte [pendências de produção](docs/BACKEND_PRODUCAO.md) para os próximos passos e critérios de ativação.
 
 ## Banco remoto
 

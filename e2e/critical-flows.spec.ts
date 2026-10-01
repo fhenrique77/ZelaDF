@@ -530,3 +530,64 @@ test("GPS só é solicitado por ação do usuário e a negativa preserva o mapa"
     page.getByRole("button", { name: /Novo aviso|Avisar/ }),
   ).toBeEnabled()
 })
+
+test("GPS permitido centraliza o mapa somente após o toque", async ({ page, backend }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.geolocation, "getCurrentPosition", {
+      value: (success: PositionCallback) => success({
+        coords: { latitude: -15.86, longitude: -48.04, accuracy: 10,
+          altitude: null, altitudeAccuracy: null, heading: null, speed: null },
+        timestamp: Date.now(),
+      } as GeolocationPosition),
+    })
+  })
+  await backend.open(page)
+  await page.getByTitle("Minha localização", { exact: true }).click()
+  await expect.poll(() => backend.calls.filter(call => call.path === "/rest/v1/reports")
+    .some(call => call.query.getAll("lat").some(value => value.startsWith("gte.-15.8")))).toBe(true)
+  await expect(page.getByText(/GPS indisponível|Localização bloqueada/)).toHaveCount(0)
+  expect(backend.geocodingRequests).toBe(0)
+})
+
+test("GPS indisponível permite continuar usando o mapa", async ({ page, backend }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.geolocation, "getCurrentPosition", {
+      value: (_success: PositionCallback, error: PositionErrorCallback) => error({
+        code: 2, message: "Position unavailable", PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
+      }),
+    })
+  })
+  await backend.open(page)
+  await page.getByTitle("Minha localização", { exact: true }).click()
+  await expect(page.getByText(/GPS indisponível no momento/)).toBeVisible()
+  await expect(page.getByRole("button", { name: /Novo aviso|Avisar/ })).toBeEnabled()
+})
+
+test("perda de rede mostra erro e permite recuperar os avisos", async ({ page, context, backend }) => {
+  await backend.open(page)
+  await context.setOffline(true)
+  await page.route("**/rest/v1/**", route => route.abort("internetdisconnected"))
+  await page.getByTitle("Atualizar avisos", { exact: true }).click()
+  await expect(page.getByText(/Não foi possível|Falha ao carregar/).first()).toBeVisible()
+  await context.setOffline(false)
+  await page.unroute("**/rest/v1/**")
+  await page.getByTitle("Atualizar avisos", { exact: true }).click()
+  await expect(page.getByText(/Não foi possível carregar os avisos/)).toHaveCount(0)
+  await expect(page.locator(".leaflet-container")).toBeVisible()
+})
+
+test("substituição de foto remove a anterior após salvar", async ({ page, backend, isMobile }) => {
+  backend.rows[0].photo_url = `https://e2e.supabase.invalid/storage/v1/object/public/report-photos/${USER_ID}/old.png`
+  await backend.open(page, true)
+  await openReport(page, isMobile)
+  await page.getByRole("button", { name: /✏️ Editar/ }).click()
+  await page.locator("input[type=file]").setInputFiles({
+    name: "replacement.png", mimeType: "image/png", buffer: PHOTO,
+  })
+  await page.getByRole("button", { name: /✓ Salvar/ }).click()
+  await expect.poll(() => backend.count("/storage/v1/object/report-photos", "DELETE")).toBe(1)
+  const update = backend.calls.find(call => call.path === "/rest/v1/reports" && call.method === "PATCH")
+  expect(String(update?.body?.photo_url)).toContain(`/report-photos/${USER_ID}/`)
+  expect(String(update?.body?.photo_url)).not.toContain("old.png")
+})
