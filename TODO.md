@@ -2,6 +2,8 @@
 
 Revisão atual: 2026-09-30. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
 
+- [x] Manter o frontend Vite independente na raiz, com metadados e `robots.txt` estáticos; validar build, navegador desktop/mobile e sincronização Android.
+
 Verificação de 30/09: checks web/Python, APK debug e JVM passaram; os dois timeouts Playwright da execução integral passaram isolados. Ensaio integrado de staging repetido com 66 verificações aprovadas. Auditoria somente leitura atualizada; produção sem mudança de metadados desde 26/09, mas sem backup físico listado e com PITR desligado. O comando oficial pgTAP continua impedido pela ausência de Docker/Podman.
 
 
@@ -399,7 +401,7 @@ Pendências consolidadas: [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md). 
 
 **Objetivo:** fazer textos e metadados refletirem o produto real e as plataformas suportadas.
 
-**Arquivos provavelmente envolvidos:** `.figma/make/site.json`, `index.html`, `public/privacy.html`, documentação e configuração futura de domínio.
+**Arquivos provavelmente envolvidos:** `index.html`, `public/robots.txt`, `public/privacy.html`, documentação e configuração futura de domínio.
 
 **Dependências:** confirmação do domínio e contato oficiais; decisão de versionamento quando um repositório Git estiver disponível; nova decisão de produto antes de adicionar PWA ou iOS.
 

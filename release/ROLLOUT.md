@@ -1,5 +1,9 @@
 # Implantação web — 2026-09-25
 
+## Estrutura do frontend — 30/09/2026
+
+Deploy de produção `dpl_CoSqEXHv8wJoAevgXRgCDJwmAfhk` no alias https://zela-df.vercel.app. O frontend React/Vite permanece na raiz; metadados estão em `index.html` e a regra de indexação em `public/robots.txt`. A cópia limpa conferida por SHA-256 passou no dry-run e no build remoto. Home e `robots.txt` foram conferidos no alias; Chromium desktop/mobile carregou app, mapa e leitura pública do Supabase sem violações de CSP, com iframe externo bloqueado nas quatro páginas HTML. Capacitor sincronizado localmente; nenhuma migration Supabase foi necessária. Rollback web: `dpl_74kV3oEAURJZZzVLELWBtg2PY7FF`.
+
 ## Segurança web — 30/09/2026
 
 Deploy de produção `dpl_74kV3oEAURJZZzVLELWBtg2PY7FF` no alias https://zela-df.vercel.app. A cópia limpa conferida por hash incluiu `vercel.json`; preview e build remoto concluíram. O alias público enviou CSP contra iframe, X-Frame-Options, nosniff, Referrer-Policy e Permissions-Policy nas páginas HTML e na função push. Chromium desktop/mobile carregou app, mapa e leitura pública do Supabase sem violação de CSP; iframe externo foi bloqueado nas quatro páginas. Push permaneceu 503 e flags FastAPI desligadas. Nenhuma migration Supabase foi executada. Rollback web: `dpl_AqrpQp2nC8UfFbq6cZqcNAcyYmvu`. Login autenticado, fotos e Android em aparelho continuam pendentes de smoke test controlado.

@@ -196,7 +196,7 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 
 **Status:** Ativa para o estado atual.
 
-**Contexto:** o repositório contém uma aplicação web responsiva e um projeto Android Capacitor. Não há projeto iOS, manifesto/service worker de PWA ou domínio público canônico confirmado. A configuração do Figma Make desativa indexação.
+**Contexto:** o repositório contém uma aplicação web responsiva e um projeto Android Capacitor. Não há projeto iOS, manifesto/service worker de PWA ou domínio público canônico confirmado. `index.html` e `public/robots.txt` desativam a indexação.
 
 **Decisão:** tratar web responsiva e Android como as plataformas suportadas e manter a distribuição atual como `noindex`. Não anunciar PWA ou iOS e não declarar URL canônica até que essas decisões sejam tomadas e implementadas.
 
@@ -351,3 +351,11 @@ A hospedagem de staging foi separada em projeto Vercel e Supabase próprios; pro
 **Decisão:** configurar os cabeçalhos em `vercel.json` para todas as rotas do projeto web, com CSP em modo de bloqueio e `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy que preserva a origem para OpenStreetMap e Permissions-Policy que mantém geolocalização/câmera na própria origem. A lista de origens da CSP cobre os provedores usados pelo build atual e a API separada de staging; qualquer nova origem web, incluindo analytics, exige revisão da política antes da ativação. O shell local do Capacitor não recebe esses cabeçalhos da Vercel.
 
 **Consequências:** o navegador bloqueia incorporação externa e recursos não autorizados; a CSP ainda permite estilos inline usados pelo aplicativo e pelas páginas estáticas. O teste local serve o build com os cabeçalhos do manifesto e verifica renderização e bloqueio de iframe. Publicação e smoke test remoto continuam necessários; uma mudança de domínio Supabase/API, mapas ou fontes deve ser conferida contra a CSP.
+
+## DEC-029 — Configuração do frontend na raiz
+
+**Status:** implementada e publicada em 2026-09-30; build web, navegador desktop/mobile, sincronização Android e smoke test remoto aprovados.
+
+**Decisão:** manter o frontend React/Vite na raiz do repositório, preservando a raiz do projeto Vercel, o `webDir: dist` do Capacitor e os scripts `pnpm`. `vite.config.ts` contém apenas a configuração necessária ao build e ao servidor local. Metadados de página ficam em `index.html` e a política de indexação em `public/robots.txt`.
+
+**Consequências:** a estrutura não exige mover `src/`, `public/` e `api/` nem alterar os projetos web e Android. O build deve preservar os caminhos relativos dos assets, os metadados e o bloqueio de indexação.

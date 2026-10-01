@@ -24,7 +24,7 @@ Use estes rótulos ao registrar conclusões:
 
 ## Ambiente de desenvolvimento
 
-Este é um projeto React + Vite + Tailwind CSS executado dentro do Figma Make. Um servidor Vite já fica disponível em `$PORT` (padrão `8443`); não inicie outro servidor sem necessidade. Alterações em `src/` usam hot reload.
+Este é um projeto React + Vite + Tailwind CSS. O servidor Vite usa `$PORT` (padrão `8443`); verifique se já está ativo antes de iniciar outro. Alterações em `src/` usam hot reload.
 
 ## Regras gerais
 
@@ -127,7 +127,7 @@ Antes de alterar uma integração, verifique timeout, erros, limites, dados envi
 
 | Objetivo | Comando | Situação |
 | --- | --- | --- |
-| Instalar | `pnpm install --prefer-offline --no-frozen-lockfile` | Usado pelo script Figma Make |
+| Instalar | `pnpm install --prefer-offline --no-frozen-lockfile` | Instala as dependências do projeto |
 | Desenvolvimento | `pnpm run dev` | Servidor normalmente já iniciado pelo ambiente |
 | Build web | `pnpm run build` | Declarado em `package.json` |
 | Preview | `pnpm run preview` | Declarado em `package.json` |
@@ -146,7 +146,7 @@ Antes de alterar uma integração, verifique timeout, erros, limites, dados envi
 | Inspecionar deploy Vercel | `npx --yes vercel@latest deploy --dry` | Requer projeto vinculado e autenticação Vercel |
 | Deploy Vercel em produção | `npx --yes vercel@latest deploy --prod --yes` | Publica e atualiza o alias de produção |
 
-O Capacitor CLI e o Gradle wrapper existem, mas não há scripts Android em `package.json`. Os comandos Gradle devem partir de `android/`; sem Android SDK configurado eles falham antes da compilação. `.figma/make/deploy` publica pelo Figma Make; o projeto Vercel vinculado usa a CLI Vercel. Não execute deploy sem autorização explícita.
+O Capacitor CLI e o Gradle wrapper existem, mas não há scripts Android em `package.json`. Os comandos Gradle devem partir de `android/`; sem Android SDK configurado eles falham antes da compilação. O projeto web vinculado usa a CLI Vercel para publicação. Não execute deploy sem autorização explícita.
 
 ## Antes de concluir uma tarefa
 

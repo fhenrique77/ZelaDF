@@ -54,7 +54,6 @@ Não há painel de gestão de operadores. O candidato inclui denúncia de conte�
 - Vercel Functions;
 - Nominatim e OpenStreetMap;
 - pnpm;
-- Figma Make.
 
 Unsplash fornece imagens apenas aos dados de demonstração. Não há projeto iOS nem PWA completa no repositório atual.
 

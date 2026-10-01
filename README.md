@@ -191,13 +191,11 @@ Os assets web encontrados no Android possuem o mesmo hash dos arquivos equivalen
 | Tiles | OpenStreetMap padrão, sem chave |
 | Formatação | oxfmt |
 | Gerenciador | pnpm |
-| Ambiente de criação | Figma Make |
 
 ## Estrutura do repositório
 
 ```text
 ZelaDF/
-├── .figma/make/                 # Scripts e configuração do Figma Make
 ├── .vercel/                     # Vínculo local com projeto Vercel
 ├── android/                     # Projeto Android Capacitor
 ├── api/
@@ -222,7 +220,7 @@ ZelaDF/
 ├── supabase-auth-migration.sql  # Referência histórica de autoria
 ├── supabase/                    # Config local, migrations, seed, auditoria e testes
 ├── tsconfig.json                # TypeScript do frontend
-└── vite.config.ts               # Vite, Tailwind e plugins Figma
+└── vite.config.ts               # Vite, Tailwind e alias do frontend
 ```
 
 Não foram encontrados:
@@ -564,7 +562,7 @@ O formulário e o detalhe apresentam o órgão como sugestão de contato e infor
 
 ### 16. Indexação pública ainda não definida
 
-O HTML e `.figma/make/site.json` desabilitam indexação de forma explícita. Metadados descritivos e um arquivo de verificação Google permanecem, mas não há domínio canônico confirmado. Uma publicação indexável depende de decisão externa e nova revisão.
+`index.html` e `public/robots.txt` desabilitam indexação de forma explícita. Metadados descritivos e um arquivo de verificação Google permanecem, mas não há domínio canônico confirmado. Uma publicação indexável depende de decisão externa e nova revisão.
 
 ### 17. Cobertura automatizada em implantação
 
