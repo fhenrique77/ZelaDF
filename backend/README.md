@@ -1,6 +1,6 @@
 # API ZelaDF
 
-**Publicada em 01/10/2026:** https://zeladf-api.vercel.app, deployment `dpl_HTj5YWQUJ4DTVwHgN8vmotiCcb7b`, projeto Vercel separado. Preview protegido em staging: `dpl_DHfWNac8eYZwxhkeFfpr32eHv9jF`. O cliente continua com as flags FastAPI desligadas. A produção respondeu aos smoke tests sem escrita, mas as rotas de backend que dependem de migrations ainda não foram habilitadas/validadas para contas reais. Detalhes e rollback em `../docs/BACKEND_PRODUCAO.md`.
+**Publicada em 01/10/2026:** https://zeladf-api.vercel.app, deployment `dpl_BF5dErye1pfiYHcARUPAyHyh2d2y`, projeto Vercel separado. API de staging: `dpl_3QpL1pYY4WwdDJ5d8YMZMtKMnpkv`. O cliente publicado continua com as flags FastAPI desligadas; um build web local com as cinco flags ligadas passou no navegador contra staging. A produção respondeu aos smoke tests sem escrita, mas as rotas de backend que dependem de migrations ainda não foram habilitadas/validadas para contas reais. Detalhes e rollback em `../docs/BACKEND_PRODUCAO.md`.
 
 Implementação local dos módulos 1 (fundação), 2 (leituras), 3 (solicitação de exclusão), 4 (avisos e fotos), 5 (confirmações), 6 (comunidade e status) e 7 (execução administrativa da exclusão). A raiz do projeto Vercel separado deve ser `backend/`; API de staging publicada e ensaiada; tráfego de produção ainda desativado. Evidências atuais em `../docs/BACKEND_PRODUCAO.md`.
 
@@ -42,7 +42,7 @@ Não instalar a chave administrativa no projeto Vercel, no app ou em arquivos ve
 
 ## Validação e operação atuais
 
-A URL https://zeladf-api-staging.vercel.app usa Supabase staging e somente chave pública. O pacote usa `vercel.json` com framework FastAPI e Python 3.12. Execução real, incluindo remoção Auth/Storage e limpeza de órfãos: 66 verificações aprovadas; 18 testes Python locais. Os trechos anteriores de requisitos de ativação continuam aplicáveis à produção.
+A URL https://zeladf-api-staging.vercel.app usa Supabase staging e somente chave pública. O pacote usa `vercel.json` com framework FastAPI e Python 3.12. Execução real, incluindo remoção Auth/Storage e limpeza de órfãos: 66 verificações aprovadas; 20 testes Python locais. O CORS cobre respostas de erro para as origens permitidas. Os trechos anteriores de requisitos de ativação continuam aplicáveis à produção.
 
 Para ensaio explícito, configurar `STAGING_PROJECT_REF` no processo e executar `python tests/live_staging.py`; `STAGING_API_URL` opcional seleciona a URL de staging autorizada no script. Ele obtém credenciais da CLI em memória, cria contas sintéticas e remove seus fixtures ao final. Nunca usar produção.
 

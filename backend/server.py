@@ -74,11 +74,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ZelaDF API", lifespan=lifespan)
-origins = [item.strip() for item in os.getenv("API_CORS_ORIGINS", "").split(",") if item.strip()]
-if origins:
-    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["Authorization", "Idempotency-Key", "Content-Type", "X-ZelaDF-Client"], allow_credentials=False)
-
-
 def logged_client_build(request: Request):
     supplied = request.headers.get("X-ZelaDF-Client", "")
     configured = os.getenv("API_KNOWN_CLIENT_BUILDS", "").split(",")[:20]
@@ -122,6 +117,12 @@ async def request_context(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store"
     log.info("request method=%s route=%s status=%s duration_ms=%d request_id=%s client=%s", logged_method(request), request.scope.get("route").path if request.scope.get("route") else "unknown", response.status_code, round((time.monotonic() - start) * 1000), request.state.request_id, logged_client_build(request))
     return response
+
+
+# Keep CORS outermost so errors returned by request_context retain CORS headers.
+origins = [item.strip() for item in os.getenv("API_CORS_ORIGINS", "").split(",") if item.strip()]
+if origins:
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"], allow_headers=["Authorization", "Idempotency-Key", "Content-Type", "X-ZelaDF-Client"], allow_credentials=False)
 
 
 def error_response(request: Request, error: ApiFailure):
