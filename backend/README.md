@@ -1,5 +1,7 @@
 # API ZelaDF
 
+**Publicada em 01/10/2026:** https://zeladf-api.vercel.app, deployment `dpl_HTj5YWQUJ4DTVwHgN8vmotiCcb7b`, projeto Vercel separado. Preview protegido em staging: `dpl_DHfWNac8eYZwxhkeFfpr32eHv9jF`. O cliente continua com as flags FastAPI desligadas. A produção respondeu aos smoke tests sem escrita, mas as rotas de backend que dependem de migrations ainda não foram habilitadas/validadas para contas reais. Detalhes e rollback em `../docs/BACKEND_PRODUCAO.md`.
+
 Implementação local dos módulos 1 (fundação), 2 (leituras), 3 (solicitação de exclusão), 4 (avisos e fotos), 5 (confirmações), 6 (comunidade e status) e 7 (execução administrativa da exclusão). A raiz do projeto Vercel separado deve ser `backend/`; API de staging publicada e ensaiada; tráfego de produção ainda desativado. Evidências atuais em `../docs/BACKEND_PRODUCAO.md`.
 
 O módulo 8 mantém o envio push na função TypeScript `api/send-push.ts` do projeto web até haver paridade demonstrada e decisão do produto. Não há rota push nem chave de `service_role` nesta API FastAPI. Cliente, webhook e servidor continuam desativados por padrão; consulte `../docs/BACKEND_PRODUCAO.md`.

@@ -59,7 +59,7 @@ Unsplash fornece imagens apenas aos dados de demonstração. Não há projeto iO
 
 ## Arquitetura
 
-**Atualização confirmada em 26/09:** existe API FastAPI em projeto Vercel separado e Supabase de staging separado, ensaiados com contas sintéticas. Produção continua no fluxo Supabase direto por flags; os executores administrativos de exclusão e fotos não integram a API pública. Evidências e limites em `docs/BACKEND_PRODUCAO.md`.
+**Atualização confirmada em 01/10:** a API FastAPI também está publicada em projeto Vercel de produção separado (`zeladf-api`), com chave pública do Supabase de produção. O preview usa staging e foi ensaiado; o cliente web/Android continua no Supabase direto por flags desligadas. As rotas de produção que exigem migrations do backend ainda não foram validadas para uso. Os executores administrativos de exclusão e fotos não integram a API pública. Evidências e limites em `docs/BACKEND_PRODUCAO.md`.
 
 
 ### Núcleo funcional

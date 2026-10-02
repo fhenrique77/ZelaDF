@@ -1,5 +1,6 @@
 import logging
 
+import httpx
 from fastapi.testclient import TestClient
 
 from server import app, log
@@ -16,6 +17,16 @@ def test_client_build_logging_uses_allowlist_and_never_logs_header_text(monkeypa
     assert "method=GET route=/health" in lines[0] and "client=android/1.0.0" in lines[0]
     assert "client=unknown" in lines[1]
     assert "private-token-123" not in caplog.text
+
+
+def test_upstream_http_urls_are_not_logged_when_root_is_info(caplog):
+    url = "https://project.supabase.co/rest/v1/reports?user_id=private-account-id"
+    with caplog.at_level(logging.INFO):
+        with httpx.Client(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json=[]))) as client:
+            assert client.get(url).status_code == 200
+    assert url not in caplog.text
+    assert "private-account-id" not in caplog.text
 
 
 def test_unexpected_exception_does_not_log_sensitive_error(monkeypatch, caplog):

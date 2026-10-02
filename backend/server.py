@@ -35,6 +35,9 @@ PHOTO_MAX_BYTES = 5 * 1024 * 1024
 PHOTO_MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 PHOTO_NAME = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$")
 CLIENT_BUILD = re.compile(r"^(?:web|android)/[0-9]+\.[0-9]+(?:\.[0-9]+)?$")
+# The Vercel runtime can enable root INFO logging; upstream URLs may contain user IDs or query data.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 log = logging.getLogger("zeladf.api")
 log.setLevel(logging.INFO)
 log.propagate = False

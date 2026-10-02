@@ -3,6 +3,8 @@
 Revisão atual: 2026-10-01. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
 
 - [x] Manter o frontend Vite independente na raiz, com metadados e `robots.txt` estáticos; validar build, navegador desktop/mobile e sincronização Android.
+- [x] Publicar projeto Vercel separado da API em produção, configurar somente quatro variáveis permitidas, validar preview/staging e smoke sem escrita; cliente web/Android segue no Supabase direto.
+- [ ] Depois de concluir o banco de produção, validar Auth de duas contas, Storage, escritas, observabilidade e operação humana da API antes de ativar qualquer flag do cliente.
 - [x] Repetir auditoria somente leitura do banco de produção e 118 contratos SQL em staging em 01/10; registrar diferenças e objetos ausentes sem alterar produção.
 - [ ] Provisionar destino protegido fora do repositório e ambiente isolado para backup/restauração completa de banco, Auth e Storage; proprietário informou em 01/10 que ainda não dispõe deles.
 
