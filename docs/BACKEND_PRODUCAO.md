@@ -1,6 +1,6 @@
 ﻿# Backend ZelaDF — pendências para produção
 
-Revisão: 2026-09-30. Publicar a API e transferir o tráfego do aplicativo são etapas distintas.
+Revisão: 2026-10-01. Publicar a API e transferir o tráfego do aplicativo são etapas distintas.
 
 ## Estado atual
 
@@ -9,6 +9,16 @@ Revisão: 2026-09-30. Publicar a API e transferir o tráfego do aplicativo são 
 - **Estado externo não verificável nesta revisão:** estado integral dos deploys, histórico de migrations de produção, backups restauráveis, secrets, métricas e operação humana. Nenhuma alteração remota foi feita para este guia.
 
 **Verificado em 30/09, sem alteração remota:** API hospedada de staging repetiu 66 verificações integradas; `/health` e `/ready` responderam 200. As páginas web públicas de produção consultadas responderam 200. Auditorias somente leitura: os 823 itens do schema principal e 136 das tabelas privadas de produção não mudaram desde 26/09. Staging difere de produção em `push_tokens`, `reports.author_name`, FKs Auth e objetos novos do backend. Nenhum dos dois projetos registra as 19 versões locais no histórico de migrations. A mudança de fingerprint de `guard_photo_cleanup` desde 26/09 foi revisada e o corpo atual coincide com a migration final `20260926000400`. A lista de backups físicos de produção está vazia e PITR está desligado; não há restauração integral demonstrada. O `supabase test db --linked` no staging parou antes de executar testes porque não há Docker/Podman. Checks locais: três typechecks, 171 Vitest, 18 Python, build web, três testes JVM e APK debug passaram. Playwright: 39 aprovações, duas expirações iniciais que passaram isoladas e três skips intencionais. Nenhuma migration ou deploy de produção foi feito nesta verificação.
+
+## Pré-vistoria de produção — 01/10/2026
+
+**Confirmado externamente por consultas somente leitura:** o projeto de produção identificado pela CLI está ativo em `sa-east-1`. A lista de backups físicos contém zero itens e o PITR está desligado. Não há backup completo de Auth e arquivos Storage nem restauração isolada demonstrada; o snapshot de metadados em `supabase/audit/results/` não é um backup.
+
+As auditorias atuais retornaram 823 itens do schema principal e 136 das tabelas privadas, sem diferença em relação a 30/09. `supabase_migrations.schema_migrations` não existe em produção; há 19 arquivos de migration locais. A consulta `supabase/audit/backend_promotion_presence.sql` confirmou que as quatro tabelas privadas e dez funções exigidas pelas migrations de criação idempotente, exclusão administrativa e limpeza de fotos estão ausentes em produção e presentes em staging. A comparação de produção com staging também encontrou diferenças anteriores: `push_tokens` tem constraints, nulabilidade e índice distintos; `reports.author_name` conserva o default histórico; as FKs de autoria de `reports` e `votes` estão validadas em produção e `NOT VALID` em staging. Essas diferenças exigem revisão semântica antes de adotar um histórico comum. Não se deve copiar o estado de staging integralmente, pois ele inclui objetos de push fora deste corte.
+
+**Teste:** 118 assertions SQL passaram novamente em staging pela Management API com rollback: 68 de RLS, 16 de pedidos de exclusão, 19 de execução administrativa e 15 de limpeza de fotos. O comando oficial `supabase test db` não foi executado nesta máquina por ausência de Docker/Podman; o resultado do GitHub Actions não pôde ser confirmado pelo acesso disponível. Nenhum SQL de escrita de aplicação, `db push`, `migration repair`, seed ou alteração permanente de schema/dados de produção foi executado.
+
+**Portão seguinte:** disponibilizar backup protegido de banco/Auth/Storage e demonstrar restauração isolada; reconciliar o baseline e o histórico reais; executar o contrato oficial em ambiente isolado. Só então ensaiar e promover as seis migrations selecionadas, na ordem indicada abaixo, com plano de compensação. **Documentado — informado pelo proprietário em 01/10:** ainda não há destino protegido para a cópia nem ambiente isolado de restauração. É necessário provisionar ambos antes da promoção; não enviar credenciais em chat ou arquivos versionados.
 
 ## 1. Preparar o banco de produção
 

@@ -1,5 +1,9 @@
 # ZelaDF - Operação do Supabase
 
+## Pré-vistoria de produção — 01/10/2026
+
+Auditorias somente leitura e consulta de presença dos objetos de backend repetidas; resultados em `audit/results/` (ignorado pelo Git). O schema principal (823 itens) e as tabelas privadas (136 itens) não mudaram desde 30/09. A produção não possui `supabase_migrations.schema_migrations`, nem as quatro tabelas privadas e dez funções das migrations novas; staging possui esses 14 objetos. Diferenças históricas em `push_tokens`, `reports.author_name` e FKs Auth ainda impedem `db push` e `migration repair`. Zero backups físicos listados e PITR desligado; não existe restauração completa de banco/Auth/Storage comprovada. Os 118 contratos SQL passaram em staging por Management API com rollback, mas `supabase test db` oficial permanece pendente sem Docker/Podman. Nenhuma migration ou alteração permanente de schema/dados de aplicação foi executada. Ver [portões detalhados](../docs/BACKEND_PRODUCAO.md).
+
 ## Validação atual — 26/09/2026
 
 **Confirmado por execução:** staging separado criado e inicializado com migrations até `20260926000400`, sem seed. As 118 assertions passaram via Management API e os fluxos Auth/Storage reais passaram com contas sintéticas. O wrapper `tests/run-staging-contracts.ps1` preserva todos os resultados; o comando oficial `supabase test db` continua pendente por ausência de Docker/Podman. CI isolado foi preparado.

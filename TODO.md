@@ -1,8 +1,10 @@
 # ZelaDF — Próximas tarefas
 
-Revisão atual: 2026-09-30. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+Revisão atual: 2026-10-01. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
 
 - [x] Manter o frontend Vite independente na raiz, com metadados e `robots.txt` estáticos; validar build, navegador desktop/mobile e sincronização Android.
+- [x] Repetir auditoria somente leitura do banco de produção e 118 contratos SQL em staging em 01/10; registrar diferenças e objetos ausentes sem alterar produção.
+- [ ] Provisionar destino protegido fora do repositório e ambiente isolado para backup/restauração completa de banco, Auth e Storage; proprietário informou em 01/10 que ainda não dispõe deles.
 
 Verificação de 30/09: checks web/Python, APK debug e JVM passaram; os dois timeouts Playwright da execução integral passaram isolados. Ensaio integrado de staging repetido com 66 verificações aprovadas. Auditoria somente leitura atualizada; produção sem mudança de metadados desde 26/09, mas sem backup físico listado e com PITR desligado. O comando oficial pgTAP continua impedido pela ausência de Docker/Podman.
 
