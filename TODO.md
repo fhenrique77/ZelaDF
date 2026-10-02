@@ -1,6 +1,6 @@
 # ZelaDF — Próximas tarefas
 
-Revisão atual: 2026-10-01. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+Revisão atual: 2026-10-02. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
 
 - [x] Manter o frontend Vite independente na raiz, com metadados e `robots.txt` estáticos; validar build, navegador desktop/mobile e sincronização Android.
 - [x] Publicar projeto Vercel separado da API em produção, configurar somente quatro variáveis permitidas, validar preview/staging e smoke sem escrita; cliente web/Android segue no Supabase direto.
@@ -31,8 +31,8 @@ Verificação de 30/09: checks web/Python, APK debug e JVM passaram; os dois tim
 - [x] Publicar API de staging; validar CORS e medir leituras públicas (p95 700 ms em 20 amostras, staging vazio).
 - [x] Ampliar navegador para GPS permitido/indisponível, perda de rede e troca de foto; sincronizar Android, compilar APK debug e passar três testes JVM.
 - [x] Publicar atualização web de produção com flags FastAPI/push desligadas.
-- [x] Preparar CI web/Python/PostgreSQL isolado; execução GitHub ainda pendente.
-- [ ] Executar `supabase test db` em ambiente com Docker/Podman: assertions diretas passaram, mas não substituem esse portão do AGENTS.md.
+- [x] Corrigir o teste Android no checkout limpo: build e `cap sync android` antes do Vitest. Application checks [37060522060](https://github.com/fhenrique77/ZelaDF/actions/runs/37060522060) passou nos jobs web e banco.
+- [x] Executar `supabase test db --local` no GitHub Actions: job de banco aprovado na execução 37060522060; ainda falta reconciliar e promover o schema de produção.
 - [ ] Concluir backup completo/restauração e reconciliação do histórico/schema antes de promover migrations do backend.
 - [x] Revisar a mudança de fingerprint de `guard_photo_cleanup` em staging: corpo atual igual ao da migration final `20260926000400`.
 - [ ] Definir responsável/contato e operação de privacidade/moderação; proprietário confirmou que ainda não existem.

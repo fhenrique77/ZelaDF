@@ -1,6 +1,8 @@
 # ZelaDF — Status atual
 
-Revisão: 2026-10-01. Pendências para produção em [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md).
+Revisão: 2026-10-02. Pendências para produção em [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md).
+
+**CI confirmado no GitHub:** as execuções Application checks #1–#4 falharam no teste Android que lia `android/app/src/main/assets/capacitor.config.json` antes de o checkout limpo gerar esse arquivo. O workflow agora executa build e `cap sync android` antes do Vitest. A execução [37060522060](https://github.com/fhenrique77/ZelaDF/actions/runs/37060522060) terminou com os jobs `web` e `database` aprovados. Localmente, o sync recriou o arquivo a partir de sua ausência e os 171 testes passaram.
 
 **Confirmado no código local e por execução:** o frontend permanece na raiz com Vite, metadados estáticos em `index.html` e `public/robots.txt` para bloquear indexação. A configuração mantém `base: './'` para web e Capacitor. Três typechecks, 171 Vitest, build, teste de CSP/iframe e 41 cenários Playwright passaram (três skips); assets Android sincronizados. **Confirmado externamente em 30/09:** web publicada no alias https://zela-df.vercel.app pelo deployment `dpl_CoSqEXHv8wJoAevgXRgCDJwmAfhk`; home e `robots.txt` conferidos. Chromium desktop/mobile carregou app, mapa e leitura pública do Supabase sem violações de CSP; iframe externo bloqueado nas quatro páginas HTML. Rollback web: `dpl_74kV3oEAURJZZzVLELWBtg2PY7FF`. Nenhuma migration Supabase foi necessária para esta mudança.
 
@@ -20,11 +22,11 @@ Revisão: 2026-10-01. Pendências para produção em [docs/BACKEND_PRODUCAO.md](
 
 **Confirmado por execução:** web promovida para https://zela-df.vercel.app, deployment `dpl_AqrpQp2nC8UfFbq6cZqcNAcyYmvu`, com FastAPI/push desligados no produto. API isolada publicada em https://zeladf-api-staging.vercel.app; ensaio completo de 66 verificações aprovado usando Auth, RLS e Storage reais com contas sintéticas removidas ao final. Novas migrations aplicadas somente no staging criado no plano Free.
 
-**Confirmado no código e por execução:** worker de fotos órfãs com reserva transacional, proteção contra reassociação e retomada; retry do upload corrigido para o erro real 400 Duplicate. 118 assertions pgTAP passaram pela Management API. O comando oficial `supabase test db` segue pendente por ausência de Docker/Podman, conforme portão do AGENTS.md. CI preparado, sem execução GitHub comprovada.
+**Confirmado no código e por execução:** worker de fotos órfãs com reserva transacional, proteção contra reassociação e retomada; retry do upload corrigido para o erro real 400 Duplicate. 118 assertions pgTAP passaram pela Management API. O comando oficial `supabase test db --local` passou no CI do GitHub em 02/10; esta máquina continua sem Docker/Podman. O job web também passou após corrigir a ordem de build/sync Android.
 
 Validação local: 171 Vitest, 18 Python, três typechecks, build web local/remoto, 41 cenários Playwright aprovados entre execução integral e reexecução dos dois novos casos de foto (três skips intencionais), sync Capacitor, APK debug e três testes JVM. Aparelho/AAB não disponíveis. CORS web/Capacitor validado; p95 de leitura pública em staging vazio 700 ms (20 amostras), sem equivalência a carga de produção.
 
-**Pendências para promoção do backend:** backup completo com restauração de Auth/Storage, reconciliação integral do schema/histórico, portão oficial pgTAP, atendimento de privacidade/moderação, validação nativa e observação de adoção. Não houve migration nova em produção nem encerramento do módulo 9. Responsável/contato e Play Console continuam indisponíveis segundo o proprietário.
+**Pendências para promoção do backend:** backup completo com restauração de Auth/Storage, reconciliação integral do schema/histórico, atendimento de privacidade/moderação, validação nativa e observação de adoção. Não houve migration nova em produção nem encerramento do módulo 9. Responsável/contato e Play Console continuam indisponíveis segundo o proprietário.
 
 ## Repositório
 
