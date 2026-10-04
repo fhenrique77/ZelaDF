@@ -10,6 +10,16 @@ Este documento descreve o comportamento técnico esperado. Ele não substitui re
 
 Região de produção/staging: São Paulo; a consulta de backups não listou restauração disponível e PITR está desligado. Auditoria de logs/contratos e backup completo de Auth/Storage continuam pendentes. Evidências: [validação atual](docs/BACKEND_PRODUCAO.md).
 
+**Confirmado no código local (ZDF-02, ainda não implantado):** o bucket de fotos passa a privado e visitantes obtêm somente fotos de avisos visíveis pela Storage API. Ocultar um aviso reserva o caminho gerenciado da foto do autor e impede o download público; remover bytes físicos e lidar com cache anterior continuam atividades operacionais. O estado remoto atual não foi verificado nesta tarefa.
+
+**Confirmado no código local (ZDF-03):** o retorno do login Google no Android usa código PKCE e não carrega tokens Supabase no deep link. O verificador e a sessão ficam no armazenamento do app; o código recebido é aceito somente para uma tentativa local recente. Não registrar URL de retorno nem código em logs. A entrega real em aparelho e a configuração remota do provedor ainda não foram verificadas.
+
+**Confirmado no código local (ZDF-05):** avisos reais deixam de carregar imagens de URL externa diretamente no dispositivo do visitante; fotos do bucket autorizado são baixadas pelo app. Fotos de demonstração fixas continuam usando Unsplash. URLs externas legadas permanecem no banco até inventário e tratamento coordenado, e clientes instalados antigos podem continuar solicitando-as.
+
+**Confirmado no código local (ZDF-07, ainda não implantado):** os contadores de quota guardam somente UUID Auth, ID do aviso quando aplicável e horário; não guardam imagem, texto nem localização. São tabelas privadas sem acesso do cliente. Eventos vencidos saem na próxima escrita da conta; conta inativa pode manter eventos vencidos até nova escrita ou exclusão Auth, que os remove em cascade.
+
+**Confirmado no código local (ZDF-06, mitigação parcial):** antes de enviar uma foto, o cliente oficial passa a recodificar os pixels como JPEG e descarta metadados de origem como EXIF. A proteção ainda pode ser contornada pelo upload direto ao Storage, e fotos antigas podem conter metadados; não presumir que todo objeto armazenado foi higienizado.
+
 ## Regras preservadas
 
 - A identidade pública permitida é somente `Cidadão`.
@@ -32,6 +42,7 @@ Região de produção/staging: São Paulo; a consulta de backups não listou res
 | Solicitações de exclusão | Manter enquanto a conta existir e o pedido estiver em atendimento; excluir com a conta | Fila/RPC instaladas e ensaiadas remotamente; proprietário assumiu atendimento manual, ainda sem ensaio completo de execução |
 | Avisos | Manter até exclusão pelo autor ou exclusão da conta; status resolvido não apaga automaticamente | Exclusão individual existe no cliente |
 | Histórico de status | Manter enquanto o aviso existir; excluir com o aviso; anonimizar o operador quando sua conta for removida | Contrato instalado remotamente com cascade no aviso e SET NULL no ator; transição/histórico testados com fixtures revertidas |
+| Eventos privados de quota de avisos e uploads | Usar para limitar criações por 24 horas; excluir eventos vencidos na próxima escrita e todos na exclusão Auth | Migration local ZDF-07; sem aplicação remota; contas inativas podem reter eventos vencidos até nova escrita/exclusão |
 | Fotos | Remover ao substituir ou excluir o aviso/conta | Policies remotas de pasta/proprietário corrigidas; cleanup individual é best effort e remoção real pela Storage API ainda precisa ser ensaiada |
 | Votos | Manter até remoção do voto, exclusão do aviso ou da conta | Acesso restrito e FK Auth com cascade instalados; referências históricas auditadas e FK validada; contador canônico testado |
 | Identificador local de dispositivo | Manter no navegador até limpeza dos dados locais e no voto enquanto ele existir | Mantido na RPC somente por compatibilidade com a coluna histórica; não define unicidade nem autorização |

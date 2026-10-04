@@ -1,10 +1,30 @@
 # ZelaDF — Próximas tarefas
 
-Revisão atual: 2026-10-02. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+Revisão atual: 2026-10-03. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
 
+- [x] Aplicar seis migrations ZDF-01/02/05/07 no Supabase staging e executar 80 contratos pgTAP com rollback, 64 verificações HTTP de fotos/quotas e limpeza das fixtures.
+- [x] Publicar web e APIs de produção/staging na Vercel; validar home, privacidade e `/health` por HTTP.
+- [ ] Corrigir ou mapear a resposta HTTP 500 do Storage quando a quota de upload dispara `PT429`; repetir ensaio HTTP e concorrência antes de promover a produção.
+- [ ] Antes de aplicar as migrations de segurança ao Supabase de produção, obter backup restaurável de banco/Auth/arquivos Storage e reconciliar schema, policies e histórico com `supabase/README.md`.
+
+- [x] Preparar localmente ZDF-07: quota transacional de avisos e uploads por conta, limite de fotos ativas, resposta 429 e contratos SQL/cliente.
+- [ ] Reconciliar schema remoto e ensaiar ZDF-07 em Supabase isolado: pgTAP, upload direto pela Storage API, PostgREST, API, concorrência, janela de 24 horas, limites legados e carga; ajustar quotas conforme uso real antes da migration e do rollout.
+- [x] Mitigar ZDF-06 no cliente oficial: recodificar JPEG/PNG/WebP antes do upload; testar JPEG sintético com EXIF GPS no navegador desktop/mobile.
+- [ ] Fechar ZDF-06 no servidor: receber bytes em quarentena privada, decodificar/recodificar em ambiente controlado, publicar somente imagem atestada e negar INSERT/UPDATE direto de clientes no bucket publicado. Inventariar, normalizar ou retirar fotos legadas e testar Storage HTTP com cliente malicioso antes do rollout coordenado.
+- [x] Preparar localmente ZDF-05: restringir novas URLs de foto no banco, bloquear carregamento externo em avisos reais e limitar origens de imagem na web/Android.
+- [ ] Executar pgTAP do ZDF-05 e ensaio PostgREST com conta autora, visitante e foto própria em Supabase isolado; reconciliar schema antes da migration remota.
+- [ ] Inventariar URLs externas legadas e planejar sua retirada; distribuir cliente web/Android corrigido junto da migration para que versões antigas não carreguem essas URLs.
+- [x] Verificar ZDF-04 no código atual e adicionar regressão de deep link não solicitado, abertura a frio, tentativa pendente e callback PKCE legítimo.
+- [x] Preparar localmente ZDF-03: Google OAuth com PKCE, Browser nativo e troca de código somente para callback de tentativa pendente.
+- [ ] Validar login Google e retorno após abertura a frio em Android instalado, inclusive com outro app registrando o mesmo esquema; confirmar que nenhum token de sessão aparece no URI.
+- [ ] Provisionar App Link HTTPS verificado com domínio e SHA-256 do certificado de assinatura Play; alinhar allowlist Supabase e testar a resolução no aparelho antes da distribuição.
 - [x] Manter o frontend Vite independente na raiz, com metadados e `robots.txt` estáticos; validar build, navegador desktop/mobile e sincronização Android.
 - [x] Publicar projeto Vercel separado da API em produção, configurar somente quatro variáveis permitidas, validar preview/staging e smoke sem escrita; cliente web/Android segue no Supabase direto.
 - [x] Ensaiar em build web local as cinco flags FastAPI com duas contas sintéticas no staging; corrigir CORS nas respostas de erro e publicar APIs atualizadas em staging/produção. 20 Python, 171 Vitest, 41 Playwright (três skips) e 66 verificações integradas passaram.
+- [x] Preparar localmente a correção ZDF-02: bucket privado, leitura condicionada à visibilidade, reserva de fotos gerenciadas do autor ocultadas e carregamento pela Storage API.
+- [ ] Executar pgTAP e testar Storage HTTP com conta visitante, autora e terceira conta em ambiente isolado; verificar URL pública antiga, URL assinada preexistente, cache/CDN, bloqueio, fotos legadas/compartilhadas e cliente Android antes de rollout coordenado.
+- [x] Preparar a correção local do ZDF-01 na migration e no contrato SQL: exigir propriedade da foto gerenciada e ignorar referências legadas divergentes na limpeza.
+- [ ] Executar o contrato pgTAP do ZDF-01 em PostgreSQL isolado e ensaiar duas contas/Storage em staging; reconciliar e promover a migration conforme `supabase/README.md`.
 - [ ] Depois de concluir o banco de produção, validar Auth de duas contas, Storage, escritas, observabilidade e operação humana da API antes de ativar qualquer flag do cliente.
 - [x] Repetir auditoria somente leitura do banco de produção e 118 contratos SQL em staging em 01/10; registrar diferenças e objetos ausentes sem alterar produção.
 - [ ] Provisionar destino protegido fora do repositório e ambiente isolado para backup/restauração completa de banco, Auth e Storage; proprietário informou em 01/10 que ainda não dispõe deles.

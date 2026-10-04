@@ -98,11 +98,16 @@ describe("Android configuration", () => {
     expect(cameraAction).toBe(true)
     const manifest = read("android/app/src/main/AndroidManifest.xml")
     const authProvider = read("src/auth/AuthProvider.tsx")
+    const nativeOAuth = read("src/auth/nativeOAuth.ts")
+    const supabaseClient = read("src/lib/supabaseClient.ts")
     const capacitorConfig = read("capacitor.config.ts")
 
     expect(manifest).toContain('android:scheme="com.zeladf.app"')
     expect(manifest).toContain('android:host="auth-callback"')
-    expect(authProvider).toContain('"com.zeladf.app://auth-callback"')
+    expect(nativeOAuth).toContain('"com.zeladf.app://auth-callback"')
+    expect(authProvider).toContain("exchangeCodeForSession(")
+    expect(authProvider).not.toContain("auth.setSession(")
+    expect(supabaseClient).toContain('flowType: "pkce"')
     expect(capacitorConfig).toContain("appId: 'com.zeladf.app'")
   })
 

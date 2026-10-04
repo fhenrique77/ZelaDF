@@ -130,6 +130,28 @@ describe("authService", () => {
       type: "email",
     })
   })
+  it("starts native Google OAuth without navigating the WebView", async () => {
+    const gateway = createGateway()
+    gateway.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://auth.example/authorize", flowId: "flow-12345678" },
+      error: null,
+    })
+    const auth = createAuthService(gateway as never)
+    expect(
+      await auth.startNativeGoogleOAuth("com.zeladf.app://auth-callback"),
+    ).toEqual({
+      error: null,
+      url: "https://auth.example/authorize",
+      flowId: "flow-12345678",
+    })
+    expect(gateway.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: {
+        redirectTo: "com.zeladf.app://auth-callback",
+        skipBrowserRedirect: true,
+      },
+    })
+  })
 
   it("encaminha cadastro, login por telefone e logout", async () => {
     const gateway = createGateway()

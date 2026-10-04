@@ -13,6 +13,7 @@ import {
   validateReport,
 } from "./reportValidation"
 import { validateStatusTransition } from "./reportStatus"
+import { prepareReportPhoto } from "./reportPhoto"
 import { fetchMyVotesViaApi, fetchReportsViaApi, useReportReadApi } from "./reportReadApi"
 import { createReportViaApi, deleteReportViaApi, updateReportViaApi, useReportWriteApi } from "./reportWriteApi"
 import { setReportVoteViaApi, useReportVoteApi } from "./reportVoteApi"
@@ -508,17 +509,21 @@ export async function createReport(
 
   // Upload da foto ao Storage
   if (normalizedInput.photoFile) {
-    const ext = photoExtension(normalizedInput.photoFile.type)
+    const preparedPhoto = await prepareReportPhoto(normalizedInput.photoFile)
+    const ext = photoExtension(preparedPhoto.type)
     const path = `${normalizedInput.authorId}/${crypto.randomUUID()}.${ext}`
 
     const { error: uploadErr } = await supabase.storage
       .from(PHOTO_BUCKET)
-      .upload(path, normalizedInput.photoFile, {
-        contentType: normalizedInput.photoFile.type,
+      .upload(path, preparedPhoto, {
+        contentType: preparedPhoto.type,
         upsert: false,
       })
 
     if (uploadErr) {
+      if (String(uploadErr.statusCode) === "429" || (uploadErr as { code?: string }).code === "PT429") {
+        throw new ReportServiceError("photo_upload", "Limite de fotos atingido. Aguarde antes de enviar outra.")
+      }
       fail(
         "photo_upload",
         "Não foi possível enviar a foto. O aviso não foi publicado.",
@@ -550,6 +555,9 @@ export async function createReport(
 
   if (error) {
     if (photoUrl) await removeStoredPhoto(photoUrl)
+    if (error.code === "PT429") {
+      throw new ReportServiceError("create", "Limite de publicações atingido. Aguarde antes de tentar novamente.")
+    }
     fail(
       "create",
       "Não foi possível publicar o aviso. Revise os dados e tente novamente.",
@@ -740,13 +748,17 @@ export async function updateReport(
 
   let newPhotoUrl = ""
   if (input.photoFile) {
-    const path = `${input.authorId}/${crypto.randomUUID()}.${photoExtension(input.photoFile.type)}`
+    const preparedPhoto = await prepareReportPhoto(input.photoFile)
+    const path = `${input.authorId}/${crypto.randomUUID()}.${photoExtension(preparedPhoto.type)}`
     const bucket = supabase.storage.from(PHOTO_BUCKET)
-    const { error: uploadError } = await bucket.upload(path, input.photoFile, {
-      contentType: input.photoFile.type,
+    const { error: uploadError } = await bucket.upload(path, preparedPhoto, {
+      contentType: preparedPhoto.type,
       upsert: false,
     })
     if (uploadError) {
+      if (String(uploadError.statusCode) === "429" || (uploadError as { code?: string }).code === "PT429") {
+        throw new ReportServiceError("photo_upload", "Limite de fotos atingido. Aguarde antes de enviar outra.")
+      }
       fail(
         "photo_upload",
         "Não foi possível enviar a nova foto. O aviso não foi alterado.",
@@ -915,10 +927,13 @@ export function storedPhotoPath(photoUrl: string): string | null {
 
   try {
     const url = new URL(photoUrl)
-    const marker = `/storage/v1/object/public/${PHOTO_BUCKET}/`
-    const markerIndex = url.pathname.indexOf(marker)
-    if (markerIndex < 0) return null
-    const encodedPath = url.pathname.slice(markerIndex + marker.length)
+    const markers = [
+      `/storage/v1/object/public/${PHOTO_BUCKET}/`,
+      `/storage/v1/render/image/public/${PHOTO_BUCKET}/`,
+    ]
+    const marker = markers.find((candidate) => url.pathname.includes(candidate))
+    if (!marker) return null
+    const encodedPath = url.pathname.slice(url.pathname.indexOf(marker) + marker.length)
     const path = decodeURIComponent(encodedPath)
     if (!path || path.startsWith("/") || path.split("/").includes(".."))
       return null

@@ -8,15 +8,23 @@ import {
 import type { Session, User } from "@supabase/supabase-js"
 import { Capacitor } from "@capacitor/core"
 import { App as CapApp } from "@capacitor/app"
+import { Browser } from "@capacitor/browser"
 import { supabase, isConfigured } from "../lib/supabaseClient"
 import { accountDisplayName } from "../lib/privacy"
 import { unregisterPushNotifications } from "../lib/push"
 import { createAuthService } from "./authService"
+import {
+  clearNativeOAuth,
+  consumeNativeOAuthCallback,
+  NATIVE_OAUTH_REDIRECT,
+  rememberNativeOAuth,
+} from "./nativeOAuth"
 
 type AuthCtx = {
   user: User | null
   session: Session | null
   loading: boolean
+  googleOAuthError: string | null
   signInWithGoogle: () => Promise<{ error: string | null }>
   signInWithEmailOtp: (email: string) => Promise<{ error: string | null }>
   verifyEmailOtp: (
@@ -50,7 +58,7 @@ export const displayName = accountDisplayName
 export function getRedirectUrl(): string {
   if (Capacitor.isNativePlatform()) {
     // Deep link do aplicativo móvel
-    return "com.zeladf.app://auth-callback"
+    return NATIVE_OAUTH_REDIRECT
   }
   // URL da web (produção ou localhost)
   return window.location.origin
@@ -60,15 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [googleOAuthError, setGoogleOAuthError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!supabase || !isConfigured) {
+    const client = supabase
+    if (!client || !isConfigured) {
       setLoading(false)
       return
     }
 
     // Reidratar sessão salva
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    client.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
       setLoading(false)
@@ -77,35 +87,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Escutar mudanças (login, logout, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = client.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setUser(s?.user ?? null)
     })
 
-    // Escuta deep links no aplicativo Android / iOS
+    // Accept only a pending PKCE code delivered to this app.
     let cleanupAppListener: (() => void) | undefined
     if (Capacitor.isNativePlatform()) {
-      CapApp.addListener("appUrlOpen", async (event) => {
-        if (
-          event.url.includes("com.zeladf.app") ||
-          event.url.includes("#access_token")
-        ) {
-          // Extrai tokens de hash se presentes na URL de redirecionamento
-          const url = new URL(event.url)
-          const hashParams = new URLSearchParams(url.hash.replace("#", "?"))
-          const accessToken = hashParams.get("access_token")
-          const refreshToken = hashParams.get("refresh_token")
-
-          if (accessToken && refreshToken && supabase) {
-            await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            })
+      let disposed = false
+      let listener: { remove: () => Promise<void> } | undefined
+      const handleCallback = async (url: string) => {
+        const callback = consumeNativeOAuthCallback(url)
+        if (!callback) return
+        try {
+          const { error } = await client.auth.exchangeCodeForSession(
+            callback.code,
+            { flowId: callback.flowId },
+          )
+          if (error) {
+            setGoogleOAuthError("Não foi possível concluir o login Google.")
           }
+        } catch {
+          setGoogleOAuthError("Não foi possível concluir o login Google.")
         }
-      }).then((handle) => {
-        cleanupAppListener = () => handle.remove()
+      }
+      CapApp.addListener("appUrlOpen", (event) => {
+        void handleCallback(event.url)
       })
+        .then((handle) => {
+          if (disposed) {
+            void handle.remove()
+          } else {
+            listener = handle
+          }
+        })
+        .catch(() => undefined)
+      void CapApp.getLaunchUrl()
+        .then((launch) => {
+          if (!disposed && launch?.url) void handleCallback(launch.url)
+        })
+        .catch(() => undefined)
+      cleanupAppListener = () => {
+        disposed = true
+        void listener?.remove()
+      }
     }
 
     return () => {
@@ -117,7 +143,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Métodos de autenticação ──
 
   const signInWithGoogle = async () => {
-    return authService.signInWithGoogle(getRedirectUrl())
+    setGoogleOAuthError(null)
+    if (!Capacitor.isNativePlatform()) {
+      return authService.signInWithGoogle(getRedirectUrl())
+    }
+    try {
+      const { error, url, flowId } = await authService.startNativeGoogleOAuth(
+        getRedirectUrl(),
+      )
+      if (error) return { error }
+      if (!url || !flowId || !rememberNativeOAuth(flowId)) {
+        return { error: "Não foi possível iniciar o login Google." }
+      }
+      await Browser.open({ url })
+      return { error: null }
+    } catch {
+      clearNativeOAuth()
+      return { error: "Não foi possível iniciar o login Google." }
+    }
   }
 
   const signInWithEmailOtp = async (email: string): Promise<{
@@ -155,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         loading,
+        googleOAuthError,
         signInWithGoogle,
         signInWithEmailOtp,
         verifyEmailOtp,

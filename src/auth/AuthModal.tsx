@@ -8,6 +8,8 @@ type PhoneMode = "login" | "signup"
 
 export function AuthModal({ onClose }: { onClose: () => void }) {
   const {
+    user,
+    googleOAuthError,
     signInWithGoogle,
     signInWithEmailOtp,
     verifyEmailOtp,
@@ -32,6 +34,14 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     )
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (googleOAuthError) setError(googleOAuthError)
+  }, [googleOAuthError])
+
+  useEffect(() => {
+    if (user) onClose()
+  }, [user, onClose])
 
   // Phone state
   const [phone, setPhone] = useState("")

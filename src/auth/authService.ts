@@ -21,6 +21,23 @@ export function createAuthService(auth: AuthGateway | null) {
       return { error: error?.message ?? null }
     },
 
+    async startNativeGoogleOAuth(redirectTo: string): Promise<{
+      error: string | null
+      url: string | null
+      flowId: string | null
+    }> {
+      if (!auth) return { ...notConfigured(), url: null, flowId: null }
+      const { data, error } = await auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true },
+      })
+      return {
+        error: error?.message ?? null,
+        url: data.url,
+        flowId: data.flowId ?? null,
+      }
+    },
+
     async signInWithEmailOtp(email: string): Promise<AuthOperationResult> {
       if (!auth) return notConfigured()
       const seconds = otpRetrySeconds()

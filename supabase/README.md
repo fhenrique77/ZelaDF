@@ -1,5 +1,9 @@
 # ZelaDF - Operação do Supabase
 
+## Atualização de staging — 03/10/2026
+
+**Confirmado por execução:** seis migrations de ZDF-01/02/05/07 (`20261002000100` a `20261003000500`) foram aplicadas em transações administrativas no staging isolado, sem `db push` nem registro artificial no histórico. Duas migrations corretivas preservam as versões já aplicadas: `00400` ajusta as policies à operação HTTP real de download; `00500` contabiliza o upload que o Storage grava em contexto de serviço. Os 80 contratos SQL das quatro áreas passaram com rollback, e 64 verificações HTTP de fotos e quotas passaram com conta sintética removida ao fim. A API do Storage rejeita upload acima da quota, mas responde HTTP 500 `DatabaseError` ao SQLSTATE `PT429`; resolver a semântica HTTP antes de produção. Produção continua sem migrations novas por ausência de backup restaurável completo e divergências de schema/histórico descritas abaixo.
+
 ## Pré-vistoria de produção — 01/10/2026
 
 Auditorias somente leitura e consulta de presença dos objetos de backend repetidas; resultados em `audit/results/` (ignorado pelo Git). O schema principal (823 itens) e as tabelas privadas (136 itens) não mudaram desde 30/09. A produção não possui `supabase_migrations.schema_migrations`, nem as quatro tabelas privadas e dez funções das migrations novas; staging possui esses 14 objetos. Diferenças históricas em `push_tokens`, `reports.author_name` e FKs Auth ainda impedem `db push` e `migration repair`. Zero backups físicos listados e PITR desligado; não existe restauração completa de banco/Auth/Storage comprovada. Os 118 contratos SQL passaram em staging por Management API com rollback, mas `supabase test db` oficial permanece pendente sem Docker/Podman. Nenhuma migration ou alteração permanente de schema/dados de aplicação foi executada. Ver [portões detalhados](../docs/BACKEND_PRODUCAO.md).

@@ -539,6 +539,8 @@ async def write_rows(request: Request, method: str, path: str, token: str, *, bo
             code = None
         if response.status_code == 401:
             raise ApiFailure(401, "unauthorized", "Sessão inválida.")
+        if code == "PT429" or response.status_code == 429:
+            raise ApiFailure(429, "rate_limited", "Limite de publicações atingido. Aguarde antes de tentar novamente.")
         if code == "23505":
             raise ApiFailure(409, "conflict", "Operação em conflito. Atualize os avisos.")
         if code == "P0002":

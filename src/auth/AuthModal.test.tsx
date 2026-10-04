@@ -2,7 +2,11 @@
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ signInWithGoogle: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  signInWithGoogle: vi.fn(),
+  googleOAuthError: null as string | null,
+  user: null as { id: string } | null,
+}))
 vi.mock("./AuthProvider", () => ({ useAuth: () => mocks }))
 import { AuthModal } from "./AuthModal"
 let container: HTMLDivElement
@@ -19,6 +23,8 @@ afterEach(async () => {
   container.remove()
   vi.unstubAllGlobals()
   vi.resetAllMocks()
+  mocks.googleOAuthError = null
+  mocks.user = null
 })
 const button = (text: string) =>
   [...container.querySelectorAll("button")].find((b) =>
@@ -47,4 +53,21 @@ describe("falhas de login Google", () => {
       expect(container.textContent).not.toContain("Google indisponível")
     },
   )
+})
+
+describe("native Google callback", () => {
+  it("shows an asynchronous PKCE exchange error and closes on session", async () => {
+    const onClose = vi.fn()
+    await act(async () => root.render(<AuthModal onClose={onClose} />))
+    await act(async () => button("Google").click())
+
+    mocks.googleOAuthError = "Nao foi possivel concluir o login Google."
+    await act(async () => root.render(<AuthModal onClose={onClose} />))
+    expect(container.textContent).toContain(mocks.googleOAuthError)
+
+    mocks.googleOAuthError = null
+    mocks.user = { id: "signed-in-user" }
+    await act(async () => root.render(<AuthModal onClose={onClose} />))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
 })

@@ -8,6 +8,10 @@ import {
   vi,
 } from "vitest"
 
+const preparePhoto = vi.hoisted(() => vi.fn())
+
+vi.mock("./reportPhoto", () => ({ prepareReportPhoto: preparePhoto }))
+
 const supabaseMock = vi.hoisted(() => ({
   from: vi.fn(),
   rpc: vi.fn(),
@@ -124,6 +128,7 @@ describe("reportService", () => {
     supabaseMock.from.mockReset()
     supabaseMock.rpc.mockReset()
     supabaseMock.storage.from.mockReset()
+    preparePhoto.mockReset().mockImplementation(async (file: File) => file)
   })
 
   it("consulta bounds e filtros no banco com limite sentinela", async () => {
@@ -256,6 +261,17 @@ describe("reportService", () => {
     })
     expect(result.report).not.toHaveProperty("authorName")
     expect(result.initialVoteFailed).toBe(false)
+  })
+
+  it("shows the quota error for a direct report insert", async () => {
+    const reportsQuery = createQuery({ data: null, error: { code: "PT429" } })
+    routeQueries({ reports: [reportsQuery] })
+    await expect(createReport({
+      category: "buraco", title: "Buraco na via", description: "Detalhes",
+      ra: "Plano Piloto", address: "Via de teste", lat: -15.79, lng: -47.88,
+      photoFile: null, authorId: dbReport.author_id,
+    })).rejects.toMatchObject({ code: "create", message: expect.stringContaining("Limite de publica") })
+    expect(reportsQuery.insert).toHaveBeenCalledOnce()
   })
 
   it("recusa criação configurada sem identidade autenticada", async () => {
@@ -442,10 +458,25 @@ describe("reportService", () => {
     })
   })
 
+  it("shows the Storage quota error before a direct report insert", async () => {
+    const upload = vi.fn().mockResolvedValue({ error: { statusCode: "429", code: "PT429" } })
+    supabaseMock.storage.from.mockReturnValue({ upload })
+    await expect(createReport({
+      category: "buraco", title: "Buraco na via", description: "Detalhes",
+      ra: "Plano Piloto", address: "Via de teste", lat: -15.79, lng: -47.88,
+      photoFile: new File(["jpeg"], "photo.jpg", { type: "image/jpeg" }),
+      authorId: dbReport.author_id,
+    })).rejects.toMatchObject({ code: "photo_upload", message: expect.stringContaining("Limite de fotos") })
+    expect(upload).toHaveBeenCalledOnce()
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
   it("interrompe a criação quando o upload falha", async () => {
     const upload = vi.fn().mockResolvedValue({ error: { code: "upload" } })
     supabaseMock.storage.from.mockReturnValue({ upload })
-    const photo = new File(["foto"], "foto.jpg", { type: "image/jpeg" })
+    const photo = new File(["source"], "foto.webp", { type: "image/webp" })
+    const prepared = new File(["normalized"], "foto.jpg", { type: "image/jpeg" })
+    preparePhoto.mockResolvedValueOnce(prepared)
 
     await expect(
       createReport({
@@ -463,9 +494,10 @@ describe("reportService", () => {
 
     expect(upload).toHaveBeenCalledWith(
       expect.stringMatching(new RegExp(`^${dbReport.author_id}/`)),
-      photo,
+      prepared,
       expect.objectContaining({ contentType: "image/jpeg", upsert: false }),
     )
+    expect(preparePhoto).toHaveBeenCalledWith(photo)
     expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 

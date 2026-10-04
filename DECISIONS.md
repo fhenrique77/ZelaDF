@@ -340,7 +340,7 @@ Moderação não equivale a exclusão física: fotos de avisos ocultos precisam 
 
 **Status:** implementada e ensaiada em Supabase staging; produção pendente.
 
-A API e o executor administrativo reivindicam somente fotos gerenciadas sem referência a qualquer aviso, inclusive oculto. Uma trava por caminho coordena a reivindicação com anexação/reupload, e um registro privado impede reutilizar o caminho após a remoção. O worker varre órfãos com mais de 24 horas, apaga bytes somente pela Storage API e confirma ausência antes de concluir; a próxima execução reconcilia interrupções após remoção física. Registros são removidos com a conta Auth. Não há nova chave administrativa na API pública nem cron de produção. URLs com sufixos são normalizadas e caminhos percent-encoded recusados para evitar variantes que contornem a trava. Clientes normais já geram nomes UUID sem encoding.
+A API e o executor administrativo reivindicam somente fotos gerenciadas sem referência a um aviso do proprietário da foto ou a um aviso histórico sem autor, inclusive oculto. A migration local `20261002000100` exige que novas associações de fotos gerenciadas pertençam ao autor; referências legadas de outras contas deixam de bloquear a limpeza. Essa correção ainda não foi aplicada nem ensaiada em PostgreSQL. Uma trava por caminho coordena a reivindicação com anexação/reupload, e um registro privado impede reutilizar o caminho após a remoção. O worker varre órfãos com mais de 24 horas, apaga bytes somente pela Storage API e confirma ausência antes de concluir; a próxima execução reconcilia interrupções após remoção física. Registros são removidos com a conta Auth. Não há nova chave administrativa na API pública nem cron de produção. URLs com sufixos são normalizadas e caminhos percent-encoded recusados para evitar variantes que contornem a trava. Clientes normais já geram nomes UUID sem encoding.
 
 A hospedagem de staging foi separada em projeto Vercel e Supabase próprios; produção mantém flags desligadas até backup, reconciliação, operação humana e observação. Ver `docs/BACKEND_PRODUCAO.md`.
 
@@ -359,3 +359,48 @@ A hospedagem de staging foi separada em projeto Vercel e Supabase próprios; pro
 **Decisão:** manter o frontend React/Vite na raiz do repositório, preservando a raiz do projeto Vercel, o `webDir: dist` do Capacitor e os scripts `pnpm`. `vite.config.ts` contém apenas a configuração necessária ao build e ao servidor local. Metadados de página ficam em `index.html` e a política de indexação em `public/robots.txt`.
 
 **Consequências:** a estrutura não exige mover `src/`, `public/` e `api/` nem alterar os projetos web e Android. O build deve preservar os caminhos relativos dos assets, os metadados e o bloqueio de indexação.
+
+## DEC-030 - Fotos de avisos em bucket privado (preparado localmente em 2026-10-03)
+
+**Atualização 03/10:** aplicada somente no staging. O Storage executa `object.get_authenticated_info` antes de servir bytes; a migration corretiva `20261003000400` usa a visibilidade do aviso para essa leitura e remove a exceção de metadados que deixava o autor baixar foto ocultada. Visitante abriu foto visível e visitante/autor receberam negação após moderação no ensaio HTTP. Produção e cache/CDN real seguem pendentes.
+
+**Contexto:** a ocultação de um aviso remove a linha das consultas públicas, mas não revoga a URL de um objeto em bucket público.
+
+**Decisão:** tornar `report-photos` privado. Um download de visitante pela Storage API requer objeto gerenciado, proprietário válido e vínculo com aviso visível; o caminho gerenciado e pertencente ao autor de uma foto ocultada recebe uma reserva durável na mesma transação da moderação. A reserva nega leituras públicas mesmo se outro aviso usar a mesma foto, e impede reupload no mesmo caminho. O autor conserva acesso aos metadados Storage das próprias fotos para limpeza, mas o download de bytes ocultados é negado. O cliente usa `download` e URL `blob:`; `photo_url` mantém o formato legado como identificador.
+
+**Limites e rollout:** fotos de avisos visíveis continuam acessíveis a visitantes pela API. Fotos externas não são controladas pelo bucket. Caminhos antigos fora do formato gerenciado deixam de ter download; URLs assinadas emitidas antes da ocultação podem persistir até expirar. Cache/CDN de URL pública antiga e clientes Android instalados exigem ensaio real; aplicação SQL e distribuição do cliente devem ser coordenadas. A correção está apenas no repositório local.
+
+## DEC-031 - Retorno OAuth Android com PKCE (preparado localmente em 2026-10-03)
+
+**Contexto:** o esquema privado do Android pode ser registrado por outro aplicativo; o fluxo implícito anterior colocava tokens Supabase no fragmento do retorno.
+
+**Decisão:** usar PKCE para Google OAuth na web e no Android. No Android, abrir a URL de autorização no Browser nativo, manter o verificador PKCE no armazenamento isolado do app e trocar apenas o `code` recebido por URL exata, com tentativa local pendente e prazo de cinco minutos. Rejeitar fragmentos com tokens e retornos alheios; recuperar também o link de abertura a frio. O redirect `com.zeladf.app://auth-callback` permanece por compatibilidade com o manifesto e allowlist existentes.
+
+**Limites:** um app concorrente ainda pode capturar o código e impedir o login, mas não obtém o verificador necessário para resgatar a sessão. Associação exclusiva exige App Link HTTPS verificado, domínio e SHA-256 do certificado Play, indisponíveis nesta cópia. Provedor Google, allowlist remota e retorno em aparelho não foram verificados; distribuir somente após ensaio real. Não houve mudança remota.
+
+## DEC-032 - Fotos de avisos reais somente do Storage do projeto (preparado localmente em 2026-10-03)
+
+**Contexto:** o autor podia gravar uma URL externa diretamente em `reports.photo_url`; o detalhe requisitava essa imagem no dispositivo de visitantes, permitindo rastrear a visualização.
+
+**Decisão:** nova guarda de INSERT/UPDATE exige URL canônica do bucket `report-photos` no mesmo projeto que emitiu o JWT autenticado. A guarda de propriedade existente continua verificando caminho, objeto e autor. Valor vazio continua válido; uma edição de texto não revalida URL legada inalterada. O detalhe só baixa fotos gerenciadas pela Storage API; fotos externas ficam restritas aos IDs fixos de demonstração e prévias locais. `img-src` deixa de permitir `*.supabase.co` e também é declarada no HTML empacotado para Android.
+
+**Limites:** a alteração local não elimina valores externos já salvos no banco. O cliente novo não os carrega, mas versões antigas podem fazê-lo. A promoção requer inventário, tratamento dos legados, migração e distribuição coordenadas. Não houve alteração remota; pgTAP, PostgREST real e aparelho ainda precisam de validação.
+
+## DEC-033 - Recodificação de fotos no cliente como mitigação parcial (2026-10-03)
+
+**Contexto:** o arquivo original, possivelmente com EXIF de GPS, era enviado sem alteração ao Storage pelo cliente direto e pelo fluxo da API. Uma conta autenticada também pode enviar bytes sem passar pelo aplicativo.
+
+**Decisão local:** os dois caminhos do cliente oficial usam a mesma rotina antes do upload: conferir assinatura JPEG/PNG/WebP, decodificar pixels e recodificar em JPEG até 2048 px por lado, com fundo branco para transparência. Falha de decodificação ou codificação interrompe o envio; a foto original nunca é usada como fallback. O mesmo arquivo selecionado reutiliza o resultado em tentativas repetidas para preservar o contrato de idempotência.
+
+**Limite e próxima fronteira:** a policy atual de `report-photos` ainda permite upload direto por conta autenticada e o PostgreSQL não inspeciona os bytes do objeto. Para garantir a propriedade, implementar quarentena privada e processador de imagens no servidor, publicar somente o resultado atestado, negar escrita direta no bucket de publicação e tratar objetos legados antes de declarar ZDF-06 encerrado. Essa mudança exige ensaio em Supabase e distribuição coordenada web/Android; nenhuma migration ou deploy foi executado.
+
+
+## DEC-034 - Quotas por conta na fronteira do banco e do Storage (preparado localmente em 2026-10-03)
+
+**Atualização 03/10:** aplicada somente no staging. O Storage grava objetos em contexto de serviço, portanto a migration corretiva `20261003000500` cobra a quota pelo `owner_id` e caminho verificados, inclusive para uploads administrativos atribuídos à conta. O 31º upload foi negado por HTTP e os contratos SQL passaram; o Storage mapeia `PT429` para HTTP 500 `DatabaseError`, exigindo ajuste de resposta antes de produção.
+
+**Contexto:** novas chaves de idempotência e o INSERT direto em `reports` permitem publicações repetidas; o upload direto permite fotos órfãs. A validação da interface ou da API não cobre esses caminhos.
+
+**Decisão:** triggers de INSERT no banco impõem 20 avisos e 30 uploads por conta em qualquer janela de 24 horas, além de 40 objetos ativos em `report-photos`. O limite do bucket de 5 MiB por novo arquivo limita a 200 MiB o acervo composto por uploads conformes; objetos legados maiores exigem inventário e tratamento antes de afirmar esse teto para todo o acervo. Eventos privados duráveis preservam o consumo da janela após exclusão; locks transacionais por conta serializam novas escritas. O mesmo limite vale para RPC FastAPI, PostgREST e Storage diretos. Manutenção confiável preserva acesso; contas cliente recebem erro 429.
+
+**Limites e rollout:** quotas têm valores iniciais de produto a medir em staging. Um atacante com muitas contas continua exigindo limites globais e controles antifraude externos. O backfill inclui apenas linhas e objetos existentes; atividade já excluída antes da migration não pode ser recuperada. Eventos com mais de 24 horas são apagados na próxima escrita da conta, e todos somem na exclusão Auth. Validar concorrência, Storage HTTP e retenção em ambiente isolado antes de aplicar; nenhuma migration remota foi executada.

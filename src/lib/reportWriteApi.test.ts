@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+const preparePhoto = vi.hoisted(() => vi.fn())
+vi.mock("./reportPhoto", () => ({ prepareReportPhoto: preparePhoto }))
+
 const getSession = vi.hoisted(() => vi.fn())
 const upload = vi.hoisted(() => vi.fn())
 const info = vi.hoisted(() => vi.fn())
@@ -29,6 +32,7 @@ describe("reportWriteApi", () => {
     getSession.mockReset().mockResolvedValue({ data: { session: { access_token: "test-token", user: { id: actor } } }, error: null })
     upload.mockReset().mockResolvedValue({ error: null })
     info.mockReset()
+    preparePhoto.mockReset().mockImplementation(async (file: File) => file)
   })
 
   afterEach(() => {
@@ -68,6 +72,39 @@ describe("reportWriteApi", () => {
     expect(upload.mock.calls[1][0]).toBe(`${actor}/${key}.jpg`)
     expect(fetchMock.mock.calls[0][1].headers["Idempotency-Key"]).toBe(key)
     expect(fetchMock.mock.calls[1][1].headers["Idempotency-Key"]).toBe(key)
+  })
+
+  it("uploads the normalized bytes and MIME before sending the photo path", async () => {
+    const original = new File(["source"], "photo.webp", { type: "image/webp" })
+    const prepared = new File(["normalized"], "foto.jpg", { type: "image/jpeg" })
+    preparePhoto.mockResolvedValueOnce(prepared)
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true,
+      json: async () => ({ report: row, initialVoteFailed: false }) }))
+    const { createReportViaApi } = await import("./reportWriteApi")
+    await createReportViaApi({ ...input, photoFile: original })
+    expect(preparePhoto).toHaveBeenCalledWith(original)
+    expect(upload).toHaveBeenCalledWith(`${actor}/${key}.jpg`, prepared,
+      { contentType: "image/jpeg", upsert: false })
+  })
+
+  it("shows the report quota response from the API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 })
+    vi.stubGlobal("fetch", fetchMock)
+    const { createReportViaApi } = await import("./reportWriteApi")
+    await expect(createReportViaApi(input)).rejects.toThrow("Limite de publica")
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(upload).not.toHaveBeenCalled()
+  })
+
+  it("stops before the API call when Storage rejects a photo quota", async () => {
+    upload.mockResolvedValue({ error: { statusCode: "429", code: "PT429" } })
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    const { createReportViaApi } = await import("./reportWriteApi")
+    await expect(createReportViaApi({ ...input, photoFile: new File(["jpeg"], "photo.jpg", { type: "image/jpeg" }) }))
+      .rejects.toThrow("Limite de fotos")
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(info).not.toHaveBeenCalled()
   })
 
   it("does not fall back to a direct write on an API failure", async () => {

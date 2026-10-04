@@ -1,5 +1,6 @@
 import type { CategoryId, Report } from "../data"
 import { photoExtension } from "./reportValidation"
+import { prepareReportPhoto } from "./reportPhoto"
 import { ReportServiceError } from "./reportService"
 import { supabase } from "./supabaseClient"
 import { apiClientIdentityHeader } from "./apiClientIdentity"
@@ -13,13 +14,15 @@ export function useReportWriteApi(): boolean {
 }
 
 function apiError(operation: "create" | "update" | "delete", status?: number): ReportServiceError {
-  const message = status === 401
-    ? "Entre na sua conta novamente antes de continuar."
-    : status === 403
-      ? "Você não tem permissão para alterar este aviso."
-      : status === 409
-        ? "O aviso foi alterado em outra sessão. Atualize os avisos antes de tentar novamente."
-        : "Não foi possível confirmar a operação. Atualize os avisos antes de tentar novamente."
+  const message = status === 429
+    ? "Limite de publicações atingido. Aguarde antes de tentar novamente."
+    : status === 401
+      ? "Entre na sua conta novamente antes de continuar."
+      : status === 403
+        ? "Você não tem permissão para alterar este aviso."
+        : status === 409
+          ? "O aviso foi alterado em outra sessão. Atualize os avisos antes de tentar novamente."
+          : "Não foi possível confirmar a operação. Atualize os avisos antes de tentar novamente."
   return new ReportServiceError(operation, message)
 }
 
@@ -69,10 +72,14 @@ function parseReport(value: unknown, operation: "create" | "update"): Report {
 
 async function uploadPhoto(file: File, actor: string, fileId: string): Promise<string> {
   if (!supabase) throw new ReportServiceError("photo_upload", "O envio da foto não está disponível.")
-  const path = `${actor}/${fileId}.${photoExtension(file.type)}`
+  const preparedPhoto = await prepareReportPhoto(file)
+  const path = `${actor}/${fileId}.${photoExtension(preparedPhoto.type)}`
   const bucket = supabase.storage.from("report-photos")
-  const { error } = await bucket.upload(path, file, { contentType: file.type, upsert: false })
+  const { error } = await bucket.upload(path, preparedPhoto, { contentType: preparedPhoto.type, upsert: false })
   if (error) {
+    if (String(error.statusCode) === "429" || (error as { code?: string }).code === "PT429") {
+      throw new ReportServiceError("photo_upload", "Limite de fotos atingido. Aguarde antes de enviar outra.")
+    }
     // A repeated submit can encounter its own upload after a lost API response.
     const { data, error: infoError } = await bucket.info(path)
     const metadata = data?.metadata as { size?: number; mimetype?: string } | undefined
@@ -80,7 +87,7 @@ async function uploadPhoto(file: File, actor: string, fileId: string): Promise<s
       (String(error.statusCode) === "400" &&
         ((error as { error?: string }).error === "Duplicate" ||
           (error as { code?: string }).code === "ResourceAlreadyExists"))
-    if (!duplicate || infoError || metadata?.size !== file.size || metadata?.mimetype !== file.type) {
+    if (!duplicate || infoError || metadata?.size !== preparedPhoto.size || metadata?.mimetype !== preparedPhoto.type) {
       throw new ReportServiceError("photo_upload", "Não foi possível enviar a foto. O aviso não foi alterado.")
     }
   }

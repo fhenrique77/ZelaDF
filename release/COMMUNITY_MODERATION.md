@@ -34,6 +34,9 @@ Ocultar retira o aviso das consultas de outras contas/visitantes. O autor contin
 
 ## Fotos e medidas adicionais
 
+**Migration ZDF-02 preparada localmente, ainda sem aplicação remota:** após reconciliar o schema e implantar cliente compatível, o bucket privado e a reserva de caminho revogam o download de visitante quando o aviso é ocultado. Antes da promoção, execute o procedimento abaixo para o bucket público atual. Mesmo após a promoção, remova bytes pela Storage API quando a política exigir exclusão física e teste URL antiga/cache CDN e URLs assinadas emitidas antes da moderação.
+
+
 **Ocultar o aviso não revoga uma URL pública já conhecida.** Se a foto viola as regras, remova o arquivo pelo Dashboard Storage ou pela Storage API administrativa e confirme que a URL não entrega mais o arquivo. Nunca apague linhas de `storage.objects` por SQL. Revise caches do provedor quando necessário. Não sinalize limpeza concluída sem essa verificação.
 
 Quando for necessário restringir uma conta infratora, use o processo administrativo do Supabase Auth após conferir a evidência; não reatribua autoria nem exclua contas apenas com base numa denúncia. O fluxo atual não aplica banimento automático.

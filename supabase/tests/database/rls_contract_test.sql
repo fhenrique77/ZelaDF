@@ -372,6 +372,8 @@ select throws_ok(
   'authenticated users cannot forge Storage ownership'
 );
 
+select set_config('storage.operation','storage.object.list',true);
+
 select results_eq(
   $$select count(*) from storage.objects where bucket_id = 'report-photos'$$,
   array[1::bigint],
@@ -394,6 +396,8 @@ select results_eq(
   'another users photo metadata is hidden by Storage RLS'
 );
 
+select set_config('storage.operation','storage.object.delete_many',true);
+
 select results_eq(
   $$with removed as (delete from storage.objects where name like '%other.jpg' returning id) select count(*) from removed$$,
   array[0::bigint],
@@ -405,6 +409,8 @@ select results_eq(
   array[1::bigint],
   'users may remove their own photo'
 );
+
+select set_config('storage.operation','',true);
 
 reset role;
 

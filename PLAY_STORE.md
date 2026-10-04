@@ -232,6 +232,8 @@ As respostas de Auth, banco, Storage e provedores são simuladas. Os itens abaix
 - [ ] Testar inicialização, rotação, retorno do segundo plano e ausência de rede.
 - [ ] Testar login por e-mail, telefone e Google conforme os provedores realmente habilitados.
 - [ ] Testar deep link de retorno do OAuth.
+- [ ] Testar o retorno Google PKCE com app concorrente para o esquema `com.zeladf.app://`, abertura a frio e ausência de tokens no URI.
+- [ ] Configurar e verificar App Link HTTPS com domínio e SHA-256 do certificado de assinatura Play; atualizar redirect autorizado no Supabase e testar no dispositivo.
 - [ ] Testar GPS permitido, negado, indisponível e localização manual.
 - [ ] Testar câmera, seletor de foto, upload, substituição e exclusão.
 - [ ] Testar criação, edição, exclusão e voto com RLS real.

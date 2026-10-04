@@ -22,7 +22,8 @@ import {
   STATUS_REASON_LIMITS,
   allowedStatusTransitions,
 } from "./lib/reportStatus"
-import type { ReportStatusHistory } from "./lib/reportService"
+import { storedPhotoPath, type ReportStatusHistory } from "./lib/reportService"
+import { supabase } from "./lib/supabaseClient"
 
 const STATUS_STYLE: Record<Status, string> = {
   aberto: "bg-terracota text-paper",
@@ -31,6 +32,22 @@ const STATUS_STYLE: Record<Status, string> = {
 }
 
 const CATEGORY_LIST = Object.values(CATEGORIES)
+
+function trustedDemoPhoto(reportId: string, photoUrl: string): boolean {
+  if (
+    !/^demo-[1-8]$/.test(reportId) &&
+    !/^00000000-0000-0000-0000-00000000000[1-8]$/.test(reportId)
+  ) return false
+  try {
+    const url = new URL(photoUrl)
+    return url.protocol === "https:" &&
+      url.hostname === "images.unsplash.com" &&
+      /^\/photo-[0-9a-f-]+$/.test(url.pathname) &&
+      !url.username && !url.password
+  } catch {
+    return false
+  }
+}
 
 export type EditReportData = {
   title: string
@@ -87,6 +104,7 @@ export function ReportDetail({
   const [editTitle, setEditTitle] = useState(report.title)
   const [editDesc, setEditDesc] = useState(report.description)
   const [editCat, setEditCat] = useState<CategoryId>(report.category)
+  const [displayPhoto, setDisplayPhoto] = useState<{ url: string; src: string | null }>({ url: "", src: null })
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null)
   const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -108,6 +126,38 @@ export function ReportDetail({
     },
     [],
   )
+
+  useEffect(() => {
+    const photoUrl = report.photo || ""
+    const managed = photoUrl.includes("/storage/v1/object/public/report-photos/") ||
+      photoUrl.includes("/storage/v1/render/image/public/report-photos/")
+    const path = storedPhotoPath(photoUrl)
+    if (!managed) {
+      const demo = trustedDemoPhoto(report.id, photoUrl)
+      const localPreview = /^local-\d+$/.test(report.id) && photoUrl.startsWith("blob:")
+      setDisplayPhoto({ url: photoUrl, src: demo || localPreview ? photoUrl : null })
+      return
+    }
+    if (!path || !supabase) {
+      setDisplayPhoto({ url: photoUrl, src: null })
+      return
+    }
+    let active = true
+    let objectUrl: string | null = null
+    void supabase.storage.from("report-photos").download(path).then(({ data, error }) => {
+      if (!active || error || !data) return
+      objectUrl = URL.createObjectURL(data)
+      setDisplayPhoto({ url: photoUrl, src: objectUrl })
+    }).catch(() => {
+      // Fail closed: never fall back to a saved public URL.
+    })
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [report.id, report.photo])
+
+  const photoSrc = displayPhoto.url === report.photo ? displayPhoto.src : null
 
   useEffect(() => {
     setNextStatus(allowedStatusTransitions(report.status)[0] ?? report.status)
@@ -226,9 +276,9 @@ export function ReportDetail({
     <div className="animate-drop scroll-thin fixed inset-x-0 bottom-0 z-[700] max-h-[85%] overflow-y-auto rounded-t-2xl border border-line bg-paper shadow-[0_-16px_50px_-20px_rgba(22,55,106,0.5)] safe-bottom lg:absolute lg:inset-x-auto lg:bottom-auto lg:right-4 lg:top-4 lg:max-h-[calc(100%-2rem)] lg:w-[340px] lg:rounded-none lg:shadow-[0_24px_60px_-20px_rgba(22,55,106,0.5)]">
       <div className="relative">
         <div className="aspect-[3/2] w-full bg-concrete">
-          {report.photo ? (
+          {photoSrc ? (
             <img
-              src={report.photo}
+              src={photoSrc}
               alt={`Foto do problema: ${report.title}`}
               className="h-full w-full object-cover"
             />
@@ -314,9 +364,9 @@ export function ReportDetail({
                 onClick={() => editFileRef.current?.click()}
                 className="flex w-full items-center gap-3 border border-dashed border-line px-3 py-2 text-left text-xs text-ash transition-colors hover:border-ink hover:text-ink"
               >
-                {editPhotoPreview || report.photo ? (
+                {editPhotoPreview || photoSrc ? (
                   <img
-                    src={editPhotoPreview ?? report.photo}
+                    src={editPhotoPreview ?? photoSrc ?? ""}
                     alt="Prévia da foto"
                     className="h-10 w-10 bg-concrete object-cover"
                   />

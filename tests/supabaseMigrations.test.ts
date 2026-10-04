@@ -26,6 +26,12 @@ const expectedMigrations = [
   "20260926000200_fix_photo_cleanup_guard.sql",
   "20260926000300_resume_completed_photo_cleanup.sql",
   "20260926000400_normalize_cleanup_photo_paths.sql",
+  "20261002000100_restrict_report_photo_ownership.sql",
+  "20261003000100_private_report_photos.sql",
+  "20261003000200_restrict_report_photo_origin.sql",
+  "20261003000300_report_and_photo_quotas.sql",
+  "20261003000400_correct_private_photo_reads.sql",
+  "20261003000500_count_storage_service_uploads.sql",
 ]
 
 describe("Supabase migration structure", () => {

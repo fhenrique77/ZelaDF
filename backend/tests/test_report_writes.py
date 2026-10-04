@@ -87,6 +87,30 @@ def test_create_validates_identity_fields_and_replays_photo(monkeypatch):
             app.state.http = original
 
 
+def test_create_returns_quota_error_without_leaking_upstream_details(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLIC_KEY", "public-test-key")
+
+    def upstream(request):
+        if request.url.path == "/auth/v1/user":
+            return httpx.Response(200, json={"id": ALICE})
+        if request.url.path == "/rest/v1/rpc/create_report_idempotent":
+            return httpx.Response(429, json={"code": "PT429", "message": "private@example.invalid"})
+        raise AssertionError(request.url.path)
+
+    with TestClient(app) as client:
+        original = app.state.http
+        app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(upstream))
+        try:
+            auth = {"Authorization": f"Bearer {token_for(ALICE)}", "Idempotency-Key": KEY}
+            response = client.post("/api/v1/reports", headers=auth, json=body())
+            assert response.status_code == 429
+            assert response.json()["error"]["code"] == "rate_limited"
+            assert "private@example.invalid" not in response.text
+        finally:
+            app.state.http = original
+
+
 def test_update_delete_authorization_and_cleanup(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
     monkeypatch.setenv("SUPABASE_PUBLIC_KEY", "public-test-key")
