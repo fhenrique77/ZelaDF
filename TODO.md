@@ -1,6 +1,8 @@
 # ZelaDF — Próximas tarefas
 
-Revisão atual: 2026-10-03. Os detalhes antigos abaixo são históricos; o estado remoto atual está em STATUS.md.
+Revisão documental: 2026-10-19. Os detalhes antigos abaixo são históricos; as últimas evidências de estado remoto estão em STATUS.md.
+
+- [x] Enxugar o README principal, atualizar a arquitetura FastAPI/Supabase e a CI declarativa e reunir links para instalação, operação e documentos técnicos.
 
 - [x] Aplicar seis migrations ZDF-01/02/05/07 no Supabase staging e executar 80 contratos pgTAP com rollback, 64 verificações HTTP de fotos/quotas e limpeza das fixtures.
 - [x] Publicar web e APIs de produção/staging na Vercel; validar home, privacidade e `/health` por HTTP.

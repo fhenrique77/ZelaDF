@@ -1,6 +1,6 @@
 # ZelaDF — Status atual
 
-Revisão: 2026-10-03. Pendências para produção em [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md).
+Revisão documental: 2026-10-19. Últimas verificações operacionais registradas: 2026-10-03. Pendências para produção em [docs/BACKEND_PRODUCAO.md](docs/BACKEND_PRODUCAO.md).
 
 **Implantação de 03/10:** **Confirmado por execução:** seis migrations ZDF-01/02/05/07 aplicadas somente no Supabase staging, incluindo duas correções posteriores para o fluxo HTTP do Storage. Os 80 contratos pgTAP das quatro áreas passaram em transações com rollback; 64 verificações HTTP adicionais cobriram foto visível para visitante, bloqueio de foto ocultada para visitante e autor, quota de 20 avisos e 30 uploads, inclusive após exclusão. O staging terminou sem contas, avisos, fotos, eventos de quota ou objetos de diagnóstico sintéticos. Web de produção publicada na Vercel em `dpl_CJGWHGvxudnFmU7mygMp9E6n8g4D`; APIs de produção e staging em `dpl_HNNA5QXzm21peQSRSBPQJMcnG2kS` e `dpl_718LBnyYMXFDWg41nTNBZTFit5yJ`. Home, privacidade e `/health` dos dois projetos API responderam HTTP 200. 202 Vitest, 21 Python, typechecks, build web e sync Android passaram. **Estado externo não verificável:** Android instalado, URL assinada anterior, cache/CDN sob tráfego real, concorrência de quota e carga ainda exigem teste. O Storage nega o 31º upload, mas sua API traduz o erro SQL `PT429` em HTTP 500 `DatabaseError`; tratar a resposta antes do rollout de quota em produção. Produção Supabase não recebeu migrations: não há backup/restauração completa comprovada nem reconciliação do schema e histórico. Os parágrafos por achado abaixo registram o estado anterior a esta implantação.
 
@@ -45,6 +45,8 @@ Validação local: 171 Vitest, 18 Python, três typechecks, build web local/remo
 **Pendências para promoção do backend:** backup completo com restauração de Auth/Storage, reconciliação integral do schema/histórico, atendimento de privacidade/moderação, validação nativa e observação de adoção. Não houve migration nova em produção nem encerramento do módulo 9. Responsável/contato e Play Console continuam indisponíveis segundo o proprietário.
 
 ## Repositório
+
+**Documentado:** o README principal apresenta funcionalidades, arquitetura com FastAPI e Supabase, instalação e CI, com links para os guias técnicos. O histórico de validações e implantações permanece neste documento; achados e evidências de segurança permanecem em `docs/`. A revisão documental de 19/10 não revalida os ambientes externos.
 
 **Confirmado no código:** a cópia foi preparada como repositório Git para `fhenrique77/ZelaDF`. O primeiro commit inclui código, projeto Android, SQL, documentação e testes. `.env*`, backups em `.tools/`, builds, resultados de testes e configurações pessoais da IDE são ignorados. Os arquivos candidatos foram verificados por padrões comuns de chaves privadas e tokens; essa verificação não substitui auditoria de credenciais ou de um histórico Git anterior.
 
