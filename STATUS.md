@@ -46,6 +46,10 @@ Validação local: 171 Vitest, 18 Python, três typechecks, build web local/remo
 
 ## Repositório
 
+**Confirmado por execução local — AUD-02:** o diff em `aud02-green-integration` valida o isolamento de estado por identidade com 9/9 testes AUD-02. A suíte Vitest registrou 209 aprovações e duas falhas preexistentes (asset Android ausente e hash do SQL histórico com CRLF). Os typechecks de frontend e API e os 10 cenários Playwright existentes passaram. A sonda Chromium comparativa registrou 26/30 tanto em `f43046e` quanto na GREEN, com as mesmas quatro falhas de restauração de foco após mudança de identidade.
+
+**Documentado — decisão de encerramento:** o AUD-02 foi tecnicamente aprovado com exceção explícita para o foco. A correção, os testes e o registro de aprovação estão em dois commits locais na branch dedicada `fhenrique77/aud02-green-integration`. A integração à `main` ainda está pendente. A decisão consta na tarefa `task_fb70494b126d` da Run `run_98a8ccaaa557`. A correção de acessibilidade permanece separada no [TODO.md](TODO.md).
+
 **Documentado:** o README principal apresenta funcionalidades, arquitetura com FastAPI e Supabase, instalação e CI, com links para os guias técnicos. O histórico de validações e implantações permanece neste documento; achados e evidências de segurança permanecem em `docs/`. A revisão documental de 19/10 não revalida os ambientes externos.
 
 **Confirmado no código:** a cópia foi preparada como repositório Git para `fhenrique77/ZelaDF`. O primeiro commit inclui código, projeto Android, SQL, documentação e testes. `.env*`, backups em `.tools/`, builds, resultados de testes e configurações pessoais da IDE são ignorados. Os arquivos candidatos foram verificados por padrões comuns de chaves privadas e tokens; essa verificação não substitui auditoria de credenciais ou de um histórico Git anterior.

@@ -38,6 +38,7 @@ export function AccountDeletionEntry({
 }: {
   onContentChanged?: () => void
 }) {
+  const { user } = useAuth()
   const [open, setOpen] = useState(hasIntent)
   useEffect(() => {
     rememberIntent(open)
@@ -64,6 +65,9 @@ export function AccountDeletionEntry({
       </button>
       {open && (
         <AccountDeletionDialog
+          // State belongs to the account shown, so an identity change must
+          // replace the dialog instance; visitors share the anonymous key.
+          key={user?.id ?? "visitor"}
           onClose={close}
           onContentChanged={onContentChanged}
         />

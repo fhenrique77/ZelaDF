@@ -16,6 +16,12 @@ Revisão: 2026-09-13. “Corrigido no banco” não substitui teste final no And
 | BUG-011 — função push falha ao iniciar na Vercel | Imports ESM com extensão .js e exclusão dos arquivos de teste do deploy. Node real e produção confirmaram resposta 503 controlada, mantendo push desativado. | Corrigido e publicado |
 | BUG-010 — limpeza de token bloqueada | Remoção própria, reassociação por dispositivo e cascade Auth corrigidas e testadas com tokens sintéticos. | Corrigido no banco; push permanece desativado |
 
+## Foco do diálogo de exclusão
+
+**Confirmado por execução local:** em Chromium desktop e mobile, fechar o diálogo depois de login como visitante ou troca de conta com o diálogo aberto deixa `document.activeElement` em `BODY`, em vez do botão **Conta**. São quatro ocorrências **preexistentes e inalteradas** na comparação entre `f43046e` e o diff GREEN do AUD-02. A sonda original foi preservada e a cópia de baseline mudou apenas o caminho da worktree. Cada versão apresentou 26 aprovações em 30 casos.
+
+**Confirmado no código:** a `key` por identidade em `src/App.tsx:642`, igual nas duas versões, remonta `AccountDeletionEntry` e substitui o botão que abriu o diálogo. A intenção persistida reabre o diálogo com outro botão no DOM. O fechamento nativo deixa o foco em `BODY` nos casos observados. A correção de foco está [no backlog](TODO.md), separada da correção de isolamento.
+
 ## Segurança do reparo
 
 O patch antigo supabase/patches/fix_bug_004_005_create_rpcs.sql foi descontinuado: preservava policies inseguras. Agora ele aborta antes de qualquer alteração; teste verifica preservação de dados/policies. Não executá-lo nem reaplicar os reparos já instalados.

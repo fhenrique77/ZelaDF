@@ -2,6 +2,10 @@
 
 Revisão documental: 2026-10-19. Os detalhes antigos abaixo são históricos; as últimas evidências de estado remoto estão em STATUS.md.
 
+- [ ] **Integrar o AUD-02 à main após autorização.** A correção, os nove testes e a documentação estão em dois commits locais na branch `fhenrique77/aud02-green-integration`. Ver [STATUS.md](STATUS.md).
+
+- [ ] **Foco do diálogo de exclusão após mudança de identidade.** Em tarefa separada do AUD-02, criar cobertura Chromium desktop e mobile para devolver o foco ao botão **Conta** após login no diálogo ou troca de conta com o diálogo aberto. O comportamento é preexistente nas duas plataformas. Preservar o fechamento com foco em sessões sem troca de identidade. Ver [BUGS.md](BUGS.md#foco-do-diálogo-de-exclusão).
+
 - [x] Enxugar o README principal, atualizar a arquitetura FastAPI/Supabase e a CI declarativa e reunir links para instalação, operação e documentos técnicos.
 
 - [x] Aplicar seis migrations ZDF-01/02/05/07 no Supabase staging e executar 80 contratos pgTAP com rollback, 64 verificações HTTP de fotos/quotas e limpeza das fixtures.
